@@ -1632,8 +1632,6 @@ struct Sculpt {
 
   Paint paint;
 
-  /** For rotating around a pivot point. */
-  // float pivot[3] = {}; XXX not used?
   int flags = SCULPT_DYNTOPO_SUBDIVIDE | SCULPT_DYNTOPO_COLLAPSE;
 
   /** Transform tool. */
@@ -1641,8 +1639,6 @@ struct Sculpt {
 
   int automasking_flags = 0;
 
-  // /* Control tablet input. */
-  // char tablet_size = {}, tablet_strength = {}; XXX not used?
   int radial_symm_legacy[3] = {};
 
   /** Maximum edge length for dynamic topology sculpting (in pixels). */
