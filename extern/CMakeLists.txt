@@ -63,8 +63,12 @@ if(WITH_BINRELOC)
 endif()
 
 if(WITH_GAMEENGINE)
-	add_subdirectory(recastnavigation)
+  add_subdirectory(recastnavigation)
+  if(WITH_GAMEENGINE_FSR)
+    add_subdirectory(fidelityfx)
+  endif()
 endif()
+
 if(WITH_CYCLES OR WITH_OPENSUBDIV)
   if((WITH_CYCLES_DEVICE_CUDA OR WITH_CYCLES_DEVICE_OPTIX) AND WITH_CUDA_DYNLOAD)
     add_subdirectory(cuew)
