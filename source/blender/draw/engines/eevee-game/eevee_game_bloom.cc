@@ -1,7 +1,7 @@
 /* SPDX-FileCopyrightText: 2023 Blender Authors
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "eevee_game_bloom.cc"
+#include "eevee_game_bloom.hh"
 #include "eevee_game_instance.hh"
 
 namespace blender::eevee_game {
