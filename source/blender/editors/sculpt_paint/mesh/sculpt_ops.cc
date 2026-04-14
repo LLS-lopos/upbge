@@ -1161,11 +1161,13 @@ static wmOperatorStatus mask_from_cavity_exec(bContext *C, wmOperator *op)
       break;
     case MaskSettingsSource::Brush:
       if (brush) {
-        scene_copy.mesh_automasking_settings->flags = brush->automasking_flags;
-        scene_copy.mesh_automasking_settings->cavity_factor = brush->automasking_cavity_factor;
-        scene_copy.mesh_automasking_settings->cavity_curve = brush->automasking_cavity_curve;
+        scene_copy.mesh_automasking_settings->flags = brush->mesh_automasking_settings->flags;
+        scene_copy.mesh_automasking_settings->cavity_factor =
+            brush->mesh_automasking_settings->cavity_factor;
+        scene_copy.mesh_automasking_settings->cavity_curve =
+            brush->mesh_automasking_settings->cavity_curve;
         scene_copy.mesh_automasking_settings->cavity_blur_steps =
-            brush->automasking_cavity_blur_steps;
+            brush->mesh_automasking_settings->cavity_blur_steps;
 
         /* Ensure only cavity masking is enabled. */
         scene_copy.mesh_automasking_settings->flags &= BRUSH_AUTOMASKING_CAVITY_ALL |
@@ -1193,11 +1195,14 @@ static wmOperatorStatus mask_from_cavity_exec(bContext *C, wmOperator *op)
 
   /* Create copy of brush with cleared automasking settings. */
   Brush brush_copy = dna::shallow_copy(*brush);
+  MeshAutomaskingSettings brush_settings;
+  brush_settings.flags = 0;
+  brush_settings.boundary_edges_propagation_steps = 1;
+  brush_settings.cavity_curve = scene_copy.mesh_automasking_settings->cavity_curve;
+
+  brush_copy.mesh_automasking_settings = &brush_settings;
   /* Set a brush type that doesn't change topology so automasking isn't "disabled". */
   brush_copy.sculpt_brush_type = SCULPT_BRUSH_TYPE_SMOOTH;
-  brush_copy.automasking_flags = 0;
-  brush_copy.automasking_boundary_edges_propagation_steps = 1;
-  brush_copy.automasking_cavity_curve = scene_copy.mesh_automasking_settings->cavity_curve;
 
   std::unique_ptr<auto_mask::Cache> automasking = auto_mask::cache_init(
       *depsgraph, scene_copy, &brush_copy, ob);
@@ -1363,9 +1368,9 @@ static wmOperatorStatus mask_from_boundary_exec(bContext *C, wmOperator *op)
     }
     case MaskSettingsSource::Brush:
       if (brush) {
-        scene_copy.mesh_automasking_settings->flags = brush->automasking_flags;
+        scene_copy.mesh_automasking_settings->flags = brush->mesh_automasking_settings->flags;
         scene_copy.mesh_automasking_settings->boundary_edges_propagation_steps =
-            brush->automasking_boundary_edges_propagation_steps;
+            brush->mesh_automasking_settings->boundary_edges_propagation_steps;
 
         scene_copy.mesh_automasking_settings->flags &= BRUSH_AUTOMASKING_BOUNDARY_EDGES |
                                                        BRUSH_AUTOMASKING_BOUNDARY_FACE_SETS;
@@ -1386,10 +1391,12 @@ static wmOperatorStatus mask_from_boundary_exec(bContext *C, wmOperator *op)
 
   /* Create copy of brush with cleared automasking settings. */
   Brush brush_copy = dna::shallow_copy(*brush);
+  MeshAutomaskingSettings brush_settings;
+  brush_settings.flags = 0;
+  brush_settings.boundary_edges_propagation_steps = 1;
   /* Set a brush type that doesn't change topology so automasking isn't "disabled". */
+  brush_copy.mesh_automasking_settings = &brush_settings;
   brush_copy.sculpt_brush_type = SCULPT_BRUSH_TYPE_SMOOTH;
-  brush_copy.automasking_flags = 0;
-  brush_copy.automasking_boundary_edges_propagation_steps = 1;
 
   std::unique_ptr<auto_mask::Cache> automasking = auto_mask::cache_init(
       *depsgraph, scene_copy, &brush_copy, ob);

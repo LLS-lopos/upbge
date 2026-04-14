@@ -670,7 +670,7 @@ static Strip *strip_duplicate(StripDuplicateContext &ctx,
   if (strip_new->modifiers.first) {
     BLI_listbase_clear(&strip_new->modifiers);
 
-    modifier_list_copy(strip_new, strip);
+    modifier_list_copy(strip_new, strip, ctx.copy_flag);
   }
   BLI_assert(modifier_persistent_uids_are_valid(*strip));
 

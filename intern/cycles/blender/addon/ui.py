@@ -455,6 +455,14 @@ class CYCLES_RENDER_PT_sampling_advanced(CyclesButtonsPanel, Panel):
 
         layout.separator()
 
+        prefs = context.preferences
+        use_debug = prefs.experimental.use_cycles_debug and prefs.view.show_developer_ui
+        if use_debug:
+            row = layout.row(align=True)
+            row.prop(cscene, "use_pixel_jitter")
+
+            layout.separator()
+
         if cscene.sampling_pattern == 'TABULATED_SOBOL':
             heading = layout.column(align=True, heading="Scrambling Distance")
             heading.prop(cscene, "auto_scrambling_distance", text="Automatic")

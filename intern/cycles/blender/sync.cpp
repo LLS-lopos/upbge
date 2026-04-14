@@ -378,6 +378,8 @@ void BlenderSync::sync_integrator(blender::ViewLayer &b_view_layer,
   integrator->set_caustics_refractive(get_boolean(cscene, "caustics_refractive"));
   integrator->set_filter_glossy(get_float(cscene, "blur_glossy"));
 
+  integrator->set_use_pixel_jitter(get_boolean(cscene, "use_pixel_jitter"));
+
   int seed = get_int(cscene, "seed");
   if (get_boolean(cscene, "use_animated_seed")) {
     seed = hash_uint2(b_scene->r.cfra, get_int(cscene, "seed"));

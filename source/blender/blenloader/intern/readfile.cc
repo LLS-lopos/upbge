@@ -841,8 +841,8 @@ LibraryFlag blo_bhead_library_flag(const FileData *fd, const BHead *bhead)
   if (fd->library_flag_offset < 0) {
     return LibraryFlag(0);
   }
-  return *reinterpret_cast<const LibraryFlag *>(
-      POINTER_OFFSET(bhead, sizeof(*bhead) + fd->library_flag_offset));
+  return LibraryFlag(*reinterpret_cast<const uint16_t *>(
+      POINTER_OFFSET(bhead, sizeof(*bhead) + fd->library_flag_offset)));
 }
 
 static void read_blender_header(FileData *fd)

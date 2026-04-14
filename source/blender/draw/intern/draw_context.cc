@@ -895,10 +895,6 @@ static void foreach_obref_in_scene(DRWContext &draw_ctx,
   eEvaluationMode eval_mode = DEG_get_mode(depsgraph);
   View3D *v3d = draw_ctx.v3d;
 
-  /* EEVEE is not supported for now. */
-  const bool engines_support_handle_ranges = (v3d && v3d->shading.type <= OB_SOLID) ||
-                                             BKE_scene_uses_blender_workbench(draw_ctx.scene);
-
   DEGObjectIterSettings deg_iter_settings = {nullptr};
   deg_iter_settings.depsgraph = depsgraph;
   deg_iter_settings.flags = DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY |
@@ -961,7 +957,7 @@ static void foreach_obref_in_scene(DRWContext &draw_ctx,
       }
 #endif
 
-      if (!engines_support_handle_ranges || !supports_handle_ranges(&dupli, ob, draw_ctx)) {
+      if (!supports_handle_ranges(&dupli, ob, draw_ctx)) {
         /* Sync the dupli as a single object. */
         if (!evil::DEG_iterator_temp_object_from_dupli(
                 ob, &dupli, eval_mode, false, &tmp_object, &tmp_runtime) ||

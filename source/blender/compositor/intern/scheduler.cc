@@ -412,6 +412,7 @@ Schedule compute_schedule(const Context &context,
       }
 
       if (node.is_group_output() && !needed_outputs.contains(input->identifier)) {
+        schedule.unneeded_inputs.add(input);
         continue;
       }
 

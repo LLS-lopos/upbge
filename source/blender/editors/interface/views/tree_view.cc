@@ -113,6 +113,15 @@ void TreeViewItemContainer::sort_alpha()
   }
 }
 
+void TreeViewItemContainer::foreach_sort_invert(TreeViewSortOrder order)
+{
+  std::ranges::reverse(children_);
+  if (order == TreeViewSortOrder::InvertNested) {
+    for (auto &child : children_) {
+      child->foreach_sort_invert(order);
+    }
+  }
+}
 /* ---------------------------------------------------------------------- */
 
 void AbstractTreeView::foreach_view_item(FunctionRef<void(AbstractViewItem &)> iter_fn) const
@@ -160,7 +169,7 @@ std::optional<uiViewState> AbstractTreeView::persistent_state() const
   if (scroll_value_) {
     state.scroll_offset = *scroll_value_;
   }
-
+  state.invert_sort_type = uint8_t(*invert_sort_type_);
   return state;
 }
 
@@ -177,6 +186,7 @@ void AbstractTreeView::persistent_state_apply(const uiViewState &state)
   *show_display_options_ = (state.flag & UI_VIEW_SHOW_FILTER_OPTIONS) != 0;
   *sort_alpha_ = (state.flag & UI_VIEW_SORT_ALPHA) != 0;
   BLI_strncpy(search_string_.get(), state.search_string, UI_MAX_NAME_STR);
+  *invert_sort_type_ = TreeViewSortOrder(state.invert_sort_type);
 }
 
 int AbstractTreeView::count_visible_descendants(const AbstractTreeViewItem &parent) const
@@ -260,6 +270,18 @@ void AbstractTreeView::get_hierarchy_lines(const ARegion &region,
   }
 }
 
+void AbstractTreeView::sort_inverted()
+{
+  if (*invert_sort_type_ == TreeViewSortOrder::None) {
+    return;
+  }
+  this->foreach_sort_invert(*invert_sort_type_);
+}
+
+TreeViewSortOrder AbstractTreeView::invert_sort_type_get() const
+{
+  return *invert_sort_type_;
+}
 static ButtonViewItem *find_first_view_item_but(const Block &block, const AbstractTreeView &view)
 {
   for (Button &but : block.buttons()) {
@@ -330,6 +352,7 @@ void AbstractTreeView::update_children_from_old(const AbstractView &old_view)
   search_string_ = old_tree_view.search_string_;
   show_display_options_ = old_tree_view.show_display_options_;
   sort_alpha_ = old_tree_view.sort_alpha_;
+  invert_sort_type_ = old_tree_view.invert_sort_type_;
   update_children_from_old_recursive(*this, old_tree_view);
 }
 
@@ -841,6 +864,12 @@ static int count_visible_items(AbstractTreeView &tree_view)
   return item_count;
 }
 
+static void set_sort_order_fn(bContext * /*C*/, void * /*but_arg1*/, void *arg2)
+{
+  TreeViewSortOrder &order = *static_cast<TreeViewSortOrder *>(arg2);
+  order = TreeViewSortOrder((uint8_t(order) + 1) % 3);
+}
+
 void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
 {
   Layout &parent_layout = this->current_layout();
@@ -941,7 +970,7 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
                   "");
 
     if (*tree_view.show_display_options_) {
-      col.row(true);
+      Layout &filter_layout = col.row(true);
       block_emboss_set(block, EmbossType::Emboss);
       Button *but = uiDefBut(block,
                              ButtonType::Text,
@@ -971,6 +1000,33 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
                              0,
                              0,
                              TIP_("Sort items alphabetically"));
+      button_flag_disable(but, BUT_UNDO);
+
+      int icon = ICON_SORT_DESC;
+      switch (*tree_view.invert_sort_type_) {
+        case TreeViewSortOrder::InvertRoot:
+          icon = ICON_DOWNARROW_HLT;
+          break;
+        case TreeViewSortOrder::InvertNested:
+          icon = ICON_SORT_ASC;
+          break;
+        default:
+          break;
+      }
+
+      filter_layout.separator();
+      but = uiDefIconBut(block,
+                         ButtonType::IconToggle,
+                         icon,
+                         0,
+                         0,
+                         UI_UNIT_X,
+                         UI_UNIT_Y,
+                         nullptr,
+                         0,
+                         0,
+                         TIP_("Reverse the order of items"));
+      button_func_set(but, set_sort_order_fn, nullptr, tree_view.invert_sort_type_.get());
       button_flag_disable(but, BUT_UNDO);
     }
   }
@@ -1087,6 +1143,17 @@ void TreeViewBuilder::build_tree_view(const bContext &C,
   if (*tree_view.sort_alpha_) {
     tree_view.sort_alpha();
   }
+
+  /* Separately sorting alphabetically and inverting seems like redundant work that could be done
+   * in one sort pass. But `std::sort` or `std::stable_sort` can't handle the case where only
+   * inverting needs to be done (unless items also store their initial index) since they need to be
+   * able to compare any two items to define their relative order. When doing alphabetic sorting
+   * the inverting could be done as part of that, but then there would still have to be a separate
+   * code path for inverting only.
+   *
+   * Inverting is rather cheap (`O(n)`) and works well with CPU caching, so it's all not worth the
+   * extra complexity. */
+  tree_view.sort_inverted();
 
   {
     /* Setup search string to filter out elements with matching characters. */

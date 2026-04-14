@@ -95,6 +95,8 @@ enum eIDPropertyFlag {
  * Some of these flags define a 'virtual' library, which may not be an actual blendfile, store
  * 'archived' embedded data, etc. IDs contained in these virtual libraries are _not_ managed by
  * regular linking code.
+ *
+ * Warning: 16 bits only (uint16_t) currently!
  */
 enum LibraryFlag {
   /** The library is an 'archive' that only contains embedded linked data. */

@@ -22,6 +22,7 @@
 #include "DNA_space_types.h"
 
 #include "BKE_colortools.hh"
+#include "BKE_idprop.hh"
 #include "BKE_screen.hh"
 
 #include "RNA_access.hh"
@@ -334,15 +335,14 @@ void store_pixel_raw(float4 pix, float *ptr)
 }
 
 ImBuf *modifier_render_mask_input(const ModifierApplyContext &context,
-                                  const StripModifierData &smd,
-                                  int timeline_frame)
+                                  const StripModifierData &smd)
 {
   ImBuf *mask = nullptr;
 
   if (smd.mask_input_type == STRIP_MASK_INPUT_STRIP) {
     if (smd.mask_strip) {
       mask = seq_render_strip(
-          &context.render_data, &context.render_state, smd.mask_strip, timeline_frame);
+          &context.render_data, &context.render_state, smd.mask_strip, context.timeline_frame);
     }
   }
   else if (smd.mask_input_type == STRIP_MASK_INPUT_ID) {
@@ -362,7 +362,7 @@ ImBuf *modifier_render_mask_input(const ModifierApplyContext &context,
                            context.render_data.rectx,
                            context.render_data.recty,
                            smd.mask_id,
-                           timeline_frame - frame_offset,
+                           context.timeline_frame - frame_offset,
                            false);
   }
 
@@ -477,6 +477,9 @@ void modifier_free(StripModifierData *smd)
   if (smd->runtime) {
     MEM_delete(smd->runtime);
   }
+  if (smd->system_properties != nullptr) {
+    IDP_FreeProperty_ex(smd->system_properties, false);
+  }
 
   MEM_delete(smd);
 }
@@ -515,7 +518,7 @@ static bool skip_modifier(Scene *scene, const StripModifierData *smd, int timeli
   return strip_has_ended_skip || missing_data_skip;
 }
 
-void modifier_apply_stack(ModifierApplyContext &context, int timeline_frame)
+void modifier_apply_stack(ModifierApplyContext &context)
 {
   if (context.strip.modifiers.first == nullptr) {
     return;
@@ -534,18 +537,24 @@ void modifier_apply_stack(ModifierApplyContext &context, int timeline_frame)
       continue;
     }
 
-    if (smti->apply && !skip_modifier(context.render_data.scene, &smd, timeline_frame)) {
-      smti->apply(context, &smd, timeline_frame);
+    if (smti->apply && !skip_modifier(context.render_data.scene, &smd, context.timeline_frame)) {
+      smti->apply(context, &smd);
     }
   }
 }
 
-StripModifierData *modifier_copy(Strip &strip_dst, StripModifierData *mod_src)
+StripModifierData *modifier_copy(Strip &strip_dst, StripModifierData *mod_src, const int flag)
 {
   const StripModifierTypeInfo *smti = modifier_type_info_get(mod_src->type);
   StripModifierData *mod_new = MEM_dupalloc(mod_src);
   /* Ensure at most one active modifier at a time. */
   mod_new->flag &= ~STRIP_MODIFIER_FLAG_ACTIVE;
+
+  mod_new->system_properties = nullptr;
+  if (mod_src->system_properties) {
+    mod_new->system_properties = IDP_CopyProperty_ex(mod_src->system_properties, flag);
+  }
+
   mod_new->runtime = MEM_new<StripModifierDataRuntime>(__func__);
 
   if (smti && smti->copy_data) {
@@ -562,10 +571,10 @@ StripModifierData *modifier_copy(Strip &strip_dst, StripModifierData *mod_src)
   return mod_new;
 }
 
-void modifier_list_copy(Strip *strip_new, Strip *strip)
+void modifier_list_copy(Strip *strip_new, Strip *strip, const int flag)
 {
   for (StripModifierData &smd : strip->modifiers) {
-    modifier_copy(*strip_new, &smd);
+    modifier_copy(*strip_new, &smd, flag);
   }
 }
 
@@ -633,6 +642,11 @@ void foreach_strip_modifier_id(Strip *strip, const FunctionRef<void(ID *)> fn)
         fn(reinterpret_cast<ID *>(modifier_data->node_group));
       }
     }
+    if (smd.system_properties) {
+      IDP_foreach_property(smd.system_properties, IDP_TYPE_FILTER_ID, [&](IDProperty *id_prop) {
+        fn((ID *)id_prop->data.pointer);
+      });
+    }
   }
 }
 
@@ -648,6 +662,10 @@ void modifier_blend_write(BlendWriter *writer, ListBaseT<StripModifierData> *mod
     const StripModifierTypeInfo *smti = modifier_type_info_get(smd.type);
 
     if (smti) {
+      if (smd.system_properties) {
+        IDP_BlendWrite(writer, smd.system_properties);
+      }
+
       writer->write_struct_by_name(smti->struct_name, &smd);
       if (smti->blend_write) {
         smti->blend_write(writer, &smd);
@@ -664,6 +682,9 @@ void modifier_blend_read_data(BlendDataReader *reader, ListBaseT<StripModifierDa
   BLO_read_struct_list(reader, StripModifierData, lb);
 
   for (StripModifierData &smd : *lb) {
+    BLO_read_struct(reader, IDProperty, &smd.system_properties);
+    IDP_BlendDataRead(reader, &smd.system_properties);
+
     if (smd.mask_strip) {
       BLO_read_struct(reader, Strip, &smd.mask_strip);
     }

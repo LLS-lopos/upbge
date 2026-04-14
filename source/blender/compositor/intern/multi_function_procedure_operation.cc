@@ -166,6 +166,14 @@ Vector<mf::Variable *> MultiFunctionProcedureOperation::get_input_variables(
       continue;
     }
 
+    const mf::ParamType parameter_type = multi_function.param_type(available_inputs_index);
+    available_inputs_index++;
+
+    if (schedule_.unneeded_inputs.contains(input)) {
+      input_variables.append(this->get_default_value_variable(parameter_type.data_type()));
+      continue;
+    }
+
     const bNodeSocket *output = get_output_linked_to_input(*input);
     if (!output) {
       const InputDescriptor input_descriptor = input_descriptor_from_input_socket(input);
@@ -191,11 +199,8 @@ Vector<mf::Variable *> MultiFunctionProcedureOperation::get_input_variables(
     }
 
     /* Implicitly convert the variable type to the expected parameter type if needed. */
-    const mf::ParamType parameter_type = multi_function.param_type(available_inputs_index);
     input_variables.last() = this->convert_variable(input_variables.last(),
                                                     parameter_type.data_type());
-
-    available_inputs_index++;
   }
 
   return input_variables;
@@ -490,17 +495,22 @@ mf::Variable *MultiFunctionProcedureOperation::convert_variable(mf::Variable *va
 
   /* Conversion is not possible, return a default variable instead. */
   if (!function) {
-    const mf::MultiFunction &constant_function =
-        procedure_.construct_function<mf::CustomMF_GenericConstant>(
-            expected_type.single_type(), expected_type.single_type().default_value(), false);
-    mf::Variable *constant_variable = procedure_builder_.add_call<1>(constant_function)[0];
-    implicit_variables_.append(constant_variable);
-    return constant_variable;
+    return this->get_default_value_variable(expected_type);
   }
 
   mf::Variable *converted_variable = procedure_builder_.add_call<1>(*function, {variable})[0];
   implicit_variables_.append(converted_variable);
   return converted_variable;
+}
+
+mf::Variable *MultiFunctionProcedureOperation::get_default_value_variable(const mf::DataType type)
+{
+  const mf::MultiFunction &constant_function =
+      procedure_.construct_function<mf::CustomMF_GenericConstant>(
+          type.single_type(), type.single_type().default_value(), false);
+  mf::Variable *constant_variable = procedure_builder_.add_call<1>(constant_function)[0];
+  implicit_variables_.append(constant_variable);
+  return constant_variable;
 }
 
 }  // namespace blender::compositor

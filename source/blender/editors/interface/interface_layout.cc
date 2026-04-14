@@ -46,11 +46,10 @@
 #include "WM_api.hh"
 #include "WM_types.hh"
 
+#include "buttons/interface_textbox.hh"
 #include "interface_intern.hh"
 
-namespace blender {
-
-namespace ui {
+namespace blender::ui {
 
 struct ButtonItem;
 
@@ -2750,6 +2749,63 @@ void button_configure_search(Button *but,
      * so other code might have already set but->type to search menu... */
     but->flag |= BUT_DISABLED;
   }
+}
+
+void Layout::textbox(const bContext *C, PointerRNA *ptr, StringRefNull propname)
+{
+  TextboxState *textbox_state = textbox_ensure_state(
+      CTX_wm_region(C), fmt::format("{}.{}", RNA_struct_identifier(ptr->type), propname));
+  this->textbox_with_state(ptr, propname, textbox_state);
+}
+
+void Layout::textbox_with_state(PointerRNA *ptr,
+                                StringRefNull propname,
+                                TextboxState *textbox_state)
+{
+
+  Block *block = this->block();
+  PropertyRNA *prop = RNA_struct_find_property_check(*ptr, propname.c_str(), PROP_STRING);
+
+  BLI_assert(textbox_state);
+
+  if (!prop) {
+    item_disabled(this, propname.c_str());
+    RNA_warning(
+        "string property not found: %s.%s", RNA_struct_identifier(ptr->type), propname.c_str());
+    return;
+  }
+
+  this->row(true).alignment_set(LayoutAlign::Expand);
+
+  const float line_heigth = fontstyle_height_max(UI_FSTYLE_WIDGET);
+
+  /** Ensure minumun value is set. */
+  textbox_state->visible_lines = std::max(textbox_state->visible_lines,
+                                          textbox_minimum_visible_lines);
+
+  int w, h;
+  item_rna_size(block->curlayout, "", ICON_NONE, ptr, prop, -1, false, false, &w, &h);
+  Button *but = uiDefButR_prop(block,
+                               ButtonType::TextBox,
+                               RNA_property_ui_name(prop),
+                               0,
+                               0,
+                               w,
+                               line_heigth * textbox_state->visible_lines + textbox_padding_top() +
+                                   textbox_padding_bottom(),
+                               ptr,
+                               prop,
+                               0,
+                               0,
+                               0,
+                               std::nullopt);
+  ButtonTextBox *textbox = static_cast<ButtonTextBox *>(but);
+  textbox->state = textbox_state;
+
+  if (RNA_property_flag(prop) & PROP_TEXTEDIT_UPDATE) {
+    button_flag_enable(but, BUT_TEXTEDIT_UPDATE);
+  }
+  block_layout_set_current(block, this);
 }
 
 void Layout::prop_search(PointerRNA *ptr,
@@ -6311,5 +6367,4 @@ EmbossType Layout::emboss_or_undefined() const
   return emboss_;
 }
 
-}  // namespace ui
-}  // namespace blender
+}  // namespace blender::ui

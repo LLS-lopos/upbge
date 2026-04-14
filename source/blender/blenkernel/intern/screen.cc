@@ -470,6 +470,12 @@ ARegion *BKE_area_region_copy(const SpaceType *st, const ARegion *region)
   BLI_duplicatelist(&dst->ui_previews, &region->ui_previews);
   BLI_listbase_clear(&dst->view_states);
   BLI_duplicatelist(&dst->view_states, &region->view_states);
+  BLI_listbase_clear(&dst->textbox_states);
+  for (const uiTextboxStateLink &textbox_state : region->textbox_states) {
+    uiTextboxStateLink *copy = MEM_new<uiTextboxStateLink>("uiTextboxStateLink", textbox_state);
+    copy->idname = BLI_strdup(textbox_state.idname);
+    BLI_addtail(&dst->textbox_states, copy);
+  }
 
   return dst;
 }
@@ -726,6 +732,12 @@ void BKE_area_region_free(SpaceType *st, ARegion *region)
   BLI_freelistN(&region->runtime->panels_category);
   BLI_freelistN(&region->panels_category_active);
   BLI_freelistN(&region->view_states);
+  for (uiTextboxStateLink &textbox_state : region->textbox_states.items_mutable()) {
+    BLI_remlink(&region->textbox_states, &textbox_state);
+    MEM_delete(textbox_state.idname);
+    MEM_delete(&textbox_state);
+  }
+
   MEM_delete(region->runtime);
 }
 
@@ -1324,6 +1336,10 @@ static void write_area(BlendWriter *writer, ScrArea *area)
     for (uiViewStateLink &view_state : region.view_states) {
       writer->write_struct(&view_state);
     }
+    for (uiTextboxStateLink &textbox_state : region.textbox_states) {
+      writer->write_struct(&textbox_state);
+      writer->write_string(textbox_state.idname);
+    }
   }
 
   for (SpaceLink &sl : area->spacedata) {
@@ -1404,6 +1420,11 @@ static void direct_link_region(BlendDataReader *reader, ARegion *region, int spa
 
   BLO_read_struct_list(reader, uiList, &region->ui_lists);
   BLO_read_struct_list(reader, uiViewStateLink, &region->view_states);
+
+  BLO_read_struct_list(reader, uiTextboxStateLink, &region->textbox_states);
+  for (uiTextboxStateLink &textbox_state : region->textbox_states) {
+    BLO_read_string(reader, &textbox_state.idname);
+  }
 
   /* The area's search filter is runtime only, so we need to clear the active flag on read. */
   /* Clear runtime flags (e.g. search filter is runtime only). */

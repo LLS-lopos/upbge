@@ -212,7 +212,7 @@ unsigned int RNA_struct_count_properties(StructRNA *srna);
  * \return The matching pointer if any, or `nullopt` otherwise.
  */
 std::optional<AncestorPointerRNA> RNA_struct_search_closest_ancestor_by_type(
-    PointerRNA *ptr, const StructRNA *srna);
+    const PointerRNA *ptr, const StructRNA *srna);
 
 /**
  * Low level direct access to type->properties,

@@ -4478,6 +4478,12 @@ static const EnumPropertyItem node_subsurface_method_items[] = {
      "Random Walk (Skin)",
      "Volumetric approximation to physically based volume scattering, with scattering radius "
      "automatically adjusted to match color textures. Designed for skin shading."},
+    {SHD_SUBSURFACE_RANDOM_WALK_LEGACY,
+     "RANDOM_WALK_LEGACY",
+     0,
+     "Random Walk (Legacy)",
+     "Volumetric approximation to physically based volume scattering, using the scattering radius "
+     "as specified"},
     {0, nullptr, 0, nullptr, nullptr}};
 
 static const EnumPropertyItem prop_image_extension[] = {
@@ -5079,6 +5085,10 @@ static void def_fn_input_string(BlenderRNA * /*brna*/, StructRNA *srna)
   prop = RNA_def_property(srna, "string", PROP_STRING, PROP_NONE);
   RNA_def_property_ui_text(prop, "String", "");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
+
+  prop = RNA_def_property(srna, "textbox_state", PROP_POINTER, PROP_NONE);
+  RNA_def_property_struct_type(prop, "TextboxState");
+  RNA_def_property_pointer_sdna(prop, nullptr, "textbox_state");
 }
 
 /* -- Shader Nodes ---------------------------------------------------------- */

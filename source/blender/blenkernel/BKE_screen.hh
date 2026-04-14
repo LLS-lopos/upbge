@@ -26,7 +26,6 @@
 #include "BKE_context.hh"
 
 namespace blender {
-
 namespace bke::id {
 class IDRemapper;
 }

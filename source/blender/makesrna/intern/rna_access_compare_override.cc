@@ -136,8 +136,7 @@ bool RNA_property_overridable_get(const PointerRNA *ptr, PropertyRNA *prop)
     }
     else if (!RNA_struct_in_public_namespace(ptr->type)) {
       if (const std::optional<AncestorPointerRNA> ancestor =
-              RNA_struct_search_closest_ancestor_by_type(const_cast<PointerRNA *>(ptr),
-                                                         RNA_Modifier))
+              RNA_struct_search_closest_ancestor_by_type(ptr, RNA_Modifier))
       {
         ModifierData *mod = static_cast<ModifierData *>(ancestor->data);
         if (mod->flag & eModifierFlag_OverrideLibrary_Local) {

@@ -444,6 +444,12 @@ struct GlyphStepData {
   ft_pix pen_x_right = 0;
   /** Draw position of the last base character (for centering combining marks). */
   ft_pix pen_x_base = 0;
+  /** Vertical offset for combining marks (raised above tall base glyphs). */
+  ft_pix offset_y = 0;
+  /** Accumulated top edge for stacking multiple above-marks on one base. */
+  ft_pix base_ymax_accum = 0;
+  /** Accumulated bottom edge for stacking multiple below-marks on one base. */
+  ft_pix base_ymin_accum = 0;
 };
 
 /**
@@ -463,20 +469,67 @@ BLI_INLINE bool blf_glyph_step(
       step.pen_x = step.pen_x_right;
       step.pen_x_right += step.g->advance_x;
       step.g_kerning = step.g;
+      step.offset_y = 0;
+      step.base_ymax_accum = step.g->box_ymax;
+      step.base_ymin_accum = step.g->box_ymin;
     }
     else {
-      /* Combining character: center the mark's bitmap over the previous base character.
+      /* Combining character: center the mark over the previous base character.
        *
        * Without GPOS data (which requires a shaping engine such as HarfBuzz),
-       * combining glyphs have no base-relative positioning. We center them using
-       * the base character's advance width, matching the fallback algorithm used
-       * by HarfBuzz when GPOS tables are absent (see `hb-ot-shape-fallback.cc`,
-       * `position_mark`, "Center align" case) and consistent with the approach
-       * described in Unicode Technical Note #2. */
+       * combining glyphs have no base-relative positioning. We follow the
+       * fallback algorithm used by HarfBuzz when GPOS tables are absent
+       * (see `hb-ot-shape-fallback.cc`, `position_mark`):
+       *
+       * - X: center the mark bitmap over the base character's advance width.
+       * - Y: place the mark at the accumulated top (above) or bottom (below)
+       *   of the base, with a small gap. Successive marks stack.
+       *   If the offset would push the mark the wrong direction, dampen it.
+       *
+       * Above/below is determined from glyph bounding boxes: the mark's
+       * vertical center vs the base glyph's vertical midpoint. */
       step.pen_x_right = pen_x_prev;
+
+      /* Horizontal: center align (matches HarfBuzz ABOVE / BELOW default). */
       const int base_center = (ft_pix_to_int(step.pen_x_base) + ft_pix_to_int(pen_x_prev)) / 2;
       const int mark_center_offset = step.g->pos[0] + step.g->dims[0] / 2;
       step.pen_x = ft_pix_from_int(base_center - mark_center_offset);
+
+      /* Vertical: reposition above/below marks (follows HarfBuzz `position_mark`). */
+      step.offset_y = 0;
+      if (step.g_kerning) {
+        const ft_pix mark_ymin = step.g->box_ymin;
+        const ft_pix mark_ymax = step.g->box_ymax;
+        const ft_pix mark_height = mark_ymax - mark_ymin;
+        const ft_pix base_mid = (step.g_kerning->box_ymin + step.g_kerning->box_ymax) / 2;
+        const ft_pix mark_mid = (mark_ymin + mark_ymax) / 2;
+        /* Gap matches HarfBuzz `y_gap = font->y_scale / 16`. */
+        const ft_pix y_gap = ft_pix_from_float(gc->size) / 16;
+
+        if (mark_mid > base_mid) {
+          /* Above mark. */
+          step.base_ymax_accum += y_gap;
+          step.offset_y = step.base_ymax_accum - mark_ymin;
+          /* Don't shift down "above" marks too much (HarfBuzz dampening). */
+          if ((y_gap > 0) != (step.offset_y > 0)) {
+            const ft_pix correction = -step.offset_y / 2;
+            step.base_ymax_accum += correction;
+            step.offset_y += correction;
+          }
+          step.base_ymax_accum += mark_height;
+        }
+        else {
+          /* Below mark. */
+          step.base_ymin_accum -= y_gap;
+          step.offset_y = step.base_ymin_accum - mark_ymax;
+          /* Never shift up "below" marks (HarfBuzz dampening). */
+          if ((y_gap > 0) == (step.offset_y > 0)) {
+            step.base_ymin_accum -= step.offset_y;
+            step.offset_y = 0;
+          }
+          step.base_ymin_accum -= mark_height;
+        }
+      }
     }
     return true;
   }
@@ -494,6 +547,9 @@ BLI_INLINE void blf_glyph_step_reset_for_newline(GlyphStepData &step)
   step.pen_x = 0;
   step.pen_x_right = 0;
   step.pen_x_base = 0;
+  step.offset_y = 0;
+  step.base_ymax_accum = 0;
+  step.base_ymin_accum = 0;
 }
 
 /** \} */
@@ -542,7 +598,11 @@ static void blf_font_draw_ex(FontBLF *font,
       continue;
     }
     /* Do not return this loop if clipped, we want every character tested. */
-    blf_glyph_draw(font, gc, step.g, ft_pix_to_int_floor(step.pen_x), ft_pix_to_int_floor(pen_y));
+    blf_glyph_draw(font,
+                   gc,
+                   step.g,
+                   ft_pix_to_int_floor(step.pen_x),
+                   ft_pix_to_int_floor(pen_y + step.offset_y));
   }
 
   blf_batch_draw_end();
@@ -822,7 +882,7 @@ static void blf_font_draw_buffer_ex(FontBLF *font,
     if (!blf_glyph_step(font, gc, step, str, str_len)) {
       continue;
     }
-    blf_glyph_draw_buffer(buf_info, step.g, step.pen_x + pos_x, pen_y_basis);
+    blf_glyph_draw_buffer(buf_info, step.g, step.pen_x + pos_x, pen_y_basis + step.offset_y);
   }
 
   if (r_info) {
@@ -991,8 +1051,8 @@ static void blf_font_boundbox_ex(FontBLF *font,
     const ft_pix gbox_xmax = (font->flags & BLF_MONOSPACED) ?
                                  step.pen_x_right :
                                  std::max(step.pen_x_right, step.pen_x + step.g->box_xmax);
-    const ft_pix gbox_ymin = step.g->box_ymin + pen_y;
-    const ft_pix gbox_ymax = step.g->box_ymax + pen_y;
+    const ft_pix gbox_ymin = step.g->box_ymin + pen_y + step.offset_y;
+    const ft_pix gbox_ymax = step.g->box_ymax + pen_y + step.offset_y;
 
     box_xmin = std::min(gbox_xmin, box_xmin);
     box_ymin = std::min(gbox_ymin, box_ymin);

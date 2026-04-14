@@ -13,6 +13,7 @@
 #include "DNA_curve_types.h"
 #include "DNA_defs.h"
 #include "DNA_object_enums.h"
+#include "DNA_scene_types.h"
 #include "DNA_texture_types.h" /* for MTex */
 
 namespace blender {
@@ -359,13 +360,13 @@ struct Brush {
   int deform_target = 0;
 
   /* automasking */
-  int automasking_flags = 0;
-  int automasking_boundary_edges_propagation_steps = 1;
+  DNA_DEPRECATED int automasking_flags = 0;
+  DNA_DEPRECATED int automasking_boundary_edges_propagation_steps = 1;
 
-  float automasking_start_normal_limit = 0.34906585f; /* 20 degrees */
-  float automasking_start_normal_falloff = 0.25f;
-  float automasking_view_normal_limit = 1.570796; /* 90 degrees */
-  float automasking_view_normal_falloff = 0.25f;
+  DNA_DEPRECATED float automasking_start_normal_limit = 0.34906585f; /* 20 degrees */
+  DNA_DEPRECATED float automasking_start_normal_falloff = 0.25f;
+  DNA_DEPRECATED float automasking_view_normal_limit = 1.570796; /* 90 degrees */
+  DNA_DEPRECATED float automasking_view_normal_falloff = 0.25f;
 
   int elastic_deform_type = 0;
   float elastic_deform_volume_preservation = 0;
@@ -445,10 +446,11 @@ struct Brush {
   struct BrushGpencilSettings *gpencil_settings = nullptr;
   struct BrushCurvesSculptSettings *curves_sculpt_settings = nullptr;
 
-  int automasking_cavity_blur_steps = 0;
-  float automasking_cavity_factor = 1.0f;
+  DNA_DEPRECATED int automasking_cavity_blur_steps = 0;
+  DNA_DEPRECATED float automasking_cavity_factor = 1.0f;
 
-  struct CurveMapping *automasking_cavity_curve = nullptr;
+  DNA_DEPRECATED struct CurveMapping *automasking_cavity_curve = nullptr;
+  struct MeshAutomaskingSettings *mesh_automasking_settings = nullptr;
 };
 
 struct PaletteColor {

@@ -766,41 +766,42 @@ void ShadowModule::begin_sync()
   }
 }
 
-void ShadowModule::sync_object(const Object *ob,
-                               const ObjectHandle &handle,
-                               const ResourceHandleRange &resource_handle,
+void ShadowModule::sync_object(const ObjectHandle &ob_handle,
                                bool is_alpha_blend,
                                bool has_transparent_shadows)
 {
-  bool is_shadow_caster = !(ob->visibility_flag & OB_HIDE_SHADOW);
+  bool is_shadow_caster = !(ob_handle.object->visibility_flag & OB_HIDE_SHADOW);
   if (!is_shadow_caster && !is_alpha_blend) {
     return;
   }
 
-  ShadowObject &shadow_ob = objects_.lookup_or_add_default(handle.object_key);
-  shadow_ob.used = true;
-  const bool is_initialized = shadow_ob.resource_handle.is_valid();
-  const bool has_jittered_transparency = has_transparent_shadows && data_.use_jitter;
-  if (is_shadow_caster && (handle.recalc || !is_initialized || has_jittered_transparency)) {
-    if (handle.recalc && is_initialized) {
-      past_casters_updated_.append(shadow_ob.resource_handle.raw());
-    }
+  for (int i : IndexRange(ob_handle.instances_count())) {
+    ShadowObject &shadow_ob = objects_.lookup_or_add_default(ObjectKey(ob_handle, i));
+    shadow_ob.used = true;
+    const bool is_initialized = shadow_ob.resource_handle.is_valid();
+    const bool has_jittered_transparency = has_transparent_shadows && data_.use_jitter;
+    ResourceHandle instance_handle = ob_handle.res_handle.sub_handle(i);
+    if (is_shadow_caster && (ob_handle.recalc || !is_initialized || has_jittered_transparency)) {
+      if (ob_handle.recalc && is_initialized) {
+        past_casters_updated_.append(shadow_ob.resource_handle.raw());
+      }
 
-    if (has_jittered_transparency) {
-      jittered_transparent_casters_.append(resource_handle.raw());
+      if (has_jittered_transparency) {
+        jittered_transparent_casters_.append(instance_handle.raw());
+      }
+      else {
+        curr_casters_updated_.append(instance_handle.raw());
+      }
     }
-    else {
-      curr_casters_updated_.append(resource_handle.raw());
-    }
-  }
-  shadow_ob.resource_handle = resource_handle;
+    shadow_ob.resource_handle = instance_handle;
 
-  if (is_shadow_caster) {
-    curr_casters_.append(resource_handle.raw());
+    if (is_shadow_caster) {
+      curr_casters_.append(instance_handle.raw());
+    }
   }
 
   if (is_alpha_blend && !inst_.is_baking()) {
-    tilemap_usage_transparent_ps_->draw(box_batch_, resource_handle);
+    tilemap_usage_transparent_ps_->draw(box_batch_, ob_handle.res_handle);
   }
 }
 

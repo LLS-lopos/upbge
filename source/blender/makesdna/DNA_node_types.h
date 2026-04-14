@@ -12,7 +12,8 @@
 #include "DNA_defs.h"
 #include "DNA_listBase.h"
 #include "DNA_node_tree_interface_types.h"
-#include "DNA_scene_types.h" /* for #ImageFormatData */
+#include "DNA_scene_types.h"  /* for #ImageFormatData */
+#include "DNA_screen_types.h" /* For #TextboxState. */
 #include "DNA_texture_types.h"
 #include "DNA_vec_types.h" /* for #rctf */
 
@@ -876,8 +877,9 @@ enum {
   SHD_SUBSURFACE_GAUSSIAN = 2,
 #endif
   SHD_SUBSURFACE_BURLEY = 3,
-  SHD_SUBSURFACE_RANDOM_WALK = 4,
+  SHD_SUBSURFACE_RANDOM_WALK_LEGACY = 4,
   SHD_SUBSURFACE_RANDOM_WALK_SKIN = 5,
+  SHD_SUBSURFACE_RANDOM_WALK = 6,
 };
 
 /* blur node */
@@ -3044,6 +3046,7 @@ struct NodeInputString {
   DNA_DEFINE_CXX_METHODS(NodeInputString)
 
   char *string = nullptr;
+  TextboxState textbox_state = {};
 };
 
 struct NodeGeometryExtrudeMesh {

@@ -873,6 +873,11 @@ class CyclesRenderSettings(bpy.types.PropertyGroup):
         subtype='PIXEL'
     )
 
+    use_pixel_jitter: BoolProperty(
+        name="Use Pixel Jitter",
+        default=False,
+    )
+
     seed: IntProperty(
         name="Seed",
         description="Seed value for integrator to get different noise patterns",

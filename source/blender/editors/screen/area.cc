@@ -108,6 +108,12 @@ void ED_region_do_listen(wmRegionListenerParams *params)
     case NC_WINDOW:
       ED_region_tag_redraw(region);
       break;
+    case NC_UI:
+      if (notifier->data == ND_UI_FONT) {
+        ui::invalidate_text_wrap_cache(*region);
+        ED_region_tag_redraw(region);
+      }
+      break;
   }
 
   if (region->runtime->type && region->runtime->type->listener) {

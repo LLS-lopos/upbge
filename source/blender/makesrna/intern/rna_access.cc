@@ -1000,7 +1000,7 @@ uint RNA_struct_count_properties(StructRNA *srna)
   return counter;
 }
 
-std::optional<AncestorPointerRNA> RNA_struct_search_closest_ancestor_by_type(PointerRNA *ptr,
+std::optional<AncestorPointerRNA> RNA_struct_search_closest_ancestor_by_type(const PointerRNA *ptr,
                                                                              const StructRNA *srna)
 {
   if (RNA_struct_is_a(ptr->type, srna)) {

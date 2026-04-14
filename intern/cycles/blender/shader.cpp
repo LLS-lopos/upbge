@@ -548,6 +548,9 @@ static ShaderNode *add_node(Scene *scene,
       case blender::SHD_SUBSURFACE_RANDOM_WALK_SKIN:
         subsurface->set_method(CLOSURE_BSSRDF_RANDOM_WALK_SKIN_ID);
         break;
+      case blender::SHD_SUBSURFACE_RANDOM_WALK_LEGACY:
+        subsurface->set_method(CLOSURE_BSSRDF_RANDOM_WALK_LEGACY_ID);
+        break;
     }
 
     node = subsurface;
@@ -677,6 +680,9 @@ static ShaderNode *add_node(Scene *scene,
         break;
       case blender::SHD_SUBSURFACE_RANDOM_WALK_SKIN:
         principled->set_subsurface_method(CLOSURE_BSSRDF_RANDOM_WALK_SKIN_ID);
+        break;
+      case blender::SHD_SUBSURFACE_RANDOM_WALK_LEGACY:
+        principled->set_subsurface_method(CLOSURE_BSSRDF_RANDOM_WALK_LEGACY_ID);
         break;
     }
     node = principled;

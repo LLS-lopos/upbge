@@ -49,8 +49,12 @@ bool button_is_editable(const Button *but)
 
 bool button_is_editable_as_text(const Button *but)
 {
-  return ELEM(
-      but->type, ButtonType::Text, ButtonType::Num, ButtonType::NumSlider, ButtonType::SearchMenu);
+  return ELEM(but->type,
+              ButtonType::TextBox,
+              ButtonType::Text,
+              ButtonType::Num,
+              ButtonType::NumSlider,
+              ButtonType::SearchMenu);
 }
 
 bool button_is_toggle(const Button *but)

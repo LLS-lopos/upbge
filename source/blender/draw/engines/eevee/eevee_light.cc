@@ -421,9 +421,9 @@ void LightModule::begin_sync()
   }
 }
 
-void LightModule::sync_light(const Object *ob, ObjectHandle &handle)
+void LightModule::sync_light(const ObjectRef &ob_ref)
 {
-  const blender::Light &la = DRW_object_get_data_for_drawing<const blender::Light>(*ob);
+  const blender::Light &la = DRW_object_get_data_for_drawing<const blender::Light>(*ob_ref.object);
   if (use_scene_lights_ == false) {
     return;
   }
@@ -434,15 +434,15 @@ void LightModule::sync_light(const Object *ob, ObjectHandle &handle)
     }
   }
 
-  Light &light = light_map_.lookup_or_add_default(handle.object_key);
+  Light &light = light_map_.lookup_or_add_default(ObjectKey(ob_ref));
   light.used = true;
-  if (handle.recalc != 0 || !light.initialized) {
+  if (inst_.get_recalc_flags(ob_ref) != 0 || !light.initialized) {
     light.initialized = true;
     light.sync(inst_.shadows,
-               ob->object_to_world(),
-               ob->visibility_flag,
+               ob_ref.object_to_world(),
+               ob_ref.object->visibility_flag,
                &la,
-               ob->light_linking,
+               ob_ref.light_linking(),
                light_threshold_);
   }
   sun_lights_len_ += int(is_sun_light(light.type));

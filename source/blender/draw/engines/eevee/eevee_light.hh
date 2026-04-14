@@ -184,7 +184,7 @@ class LightModule {
   ~LightModule();
 
   void begin_sync();
-  void sync_light(const Object *ob, ObjectHandle &handle);
+  void sync_light(const ObjectRef &ob_ref);
   void end_sync();
 
   /**

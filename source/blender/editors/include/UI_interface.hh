@@ -38,9 +38,6 @@ class AbstractView;
 class AbstractViewItem;
 struct Layout;
 struct SearchItems;
-}  // namespace ui
-
-namespace ui {
 
 void button_func_set(Button *but, std::function<void(bContext &)> func);
 void button_func_pushed_state_set(Button *but, std::function<bool(const Button &)> func);

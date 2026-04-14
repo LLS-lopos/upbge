@@ -127,15 +127,15 @@ static void node_declare(NodeDeclarationBuilder &b)
 #define SOCK_SUBSURFACE_IOR_ID 11
   sss.add_input<decl::Float>("Subsurface Anisotropy"_ustr)
       .default_value(0.0f)
-      .min(0.0f)
+      .min(-1.0f)
       .max(1.0f)
       .subtype(PROP_FACTOR)
       .short_label("Anisotropy")
       .description(
           "Directionality of volume scattering within the subsurface medium. "
-          "Zero scatters uniformly in all directions, with higher values "
-          "scattering more strongly forward. For example, skin has been measured "
-          "to have an anisotropy of 0.8")
+          "Zero scatters uniformly in all directions, positive values scatter more in the forward "
+          "direction, and negative values scatter more backwards. "
+          "For example, skin has been measured to have an anisotropy of 0.8")
       .make_available([](bNode &node) { node.custom2 = SHD_SUBSURFACE_RANDOM_WALK; });
 #define SOCK_SUBSURFACE_ANISOTROPY_ID 12
 

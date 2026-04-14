@@ -1936,8 +1936,14 @@ static wmOperatorStatus new_compositor_sequencer_node_group_exec(bContext *C, wm
     effect_input_count = (strip->input1 && strip->input2) ? 2 : (strip->input1 ? 1 : 0);
   }
 
-  bNodeTree *ntree = new_node_tree_impl(C, tree_name, "CompositorNodeTree");
+  /* We cannot use `new_node_tree_impl` here because that will call `node_templateID_assign` before
+   * we're able to trigger an update on the new node tree
+   * (`BKE_ntree_update_after_single_tree_change`). This is an issue because assigning the tree to
+   * the ID template field will cause a property update that expects the tree update function
+   * already have been called. */
+  bNodeTree *ntree = bke::node_tree_add_tree(bmain, tree_name, "CompositorNodeTree");
   initialize_compositor_sequencer_node_group(C, *ntree, is_effect_active, effect_input_count);
+  node_templateID_assign(C, ntree);
 
   if (strip != nullptr && strip->type != STRIP_TYPE_SOUND) {
     bool assigned_node_tree = false;

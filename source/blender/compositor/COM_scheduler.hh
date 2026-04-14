@@ -15,6 +15,9 @@ namespace blender::compositor {
 
 struct Schedule {
   VectorSet<const bNode *> nodes;
+  /* Holds the set of all inputs sockets that needn't be computed because the node does not need
+   * them, for instance, the unneeded inputs of a Switch node. */
+  Set<const bNodeSocket *> unneeded_inputs;
 };
 
 /* Computes the execution schedule of the node group with the given instance key, assuming the

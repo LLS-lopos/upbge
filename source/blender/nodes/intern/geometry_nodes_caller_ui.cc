@@ -29,6 +29,7 @@
 #include "ED_undo.hh"
 
 #include "MOD_nodes.hh"
+#include "NOD_caller_ui.hh"
 #include "NOD_geometry.hh"
 #include "NOD_geometry_nodes_caller_ui.hh"
 #include "NOD_geometry_nodes_log.hh"
@@ -609,139 +610,6 @@ static void draw_property_for_socket(DrawGroupInputsContext &ctx,
   }
 }
 
-static bool interface_panel_has_socket(DrawGroupInputsContext &ctx,
-                                       const bNodeTreeInterfacePanel &interface_panel)
-{
-  for (const bNodeTreeInterfaceItem *item : interface_panel.items()) {
-    if (item->item_type == NODE_INTERFACE_SOCKET) {
-      const bNodeTreeInterfaceSocket &socket = *reinterpret_cast<const bNodeTreeInterfaceSocket *>(
-          item);
-      if (socket.flag & NODE_INTERFACE_SOCKET_HIDE_IN_MODIFIER) {
-        continue;
-      }
-      if (socket.flag & NODE_INTERFACE_SOCKET_INPUT) {
-        if (ctx.input_is_visible(socket)) {
-          return true;
-        }
-      }
-    }
-    else if (item->item_type == NODE_INTERFACE_PANEL) {
-      if (interface_panel_has_socket(ctx,
-                                     *reinterpret_cast<const bNodeTreeInterfacePanel *>(item)))
-      {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-static bool interface_panel_affects_output(DrawGroupInputsContext &ctx,
-                                           const bNodeTreeInterfacePanel &panel)
-{
-  for (const bNodeTreeInterfaceItem *item : panel.items()) {
-    if (item->item_type == NODE_INTERFACE_SOCKET) {
-      const auto &socket = *reinterpret_cast<const bNodeTreeInterfaceSocket *>(item);
-      if (socket.flag & NODE_INTERFACE_SOCKET_HIDE_IN_MODIFIER) {
-        continue;
-      }
-      if (!(socket.flag & NODE_INTERFACE_SOCKET_INPUT)) {
-        continue;
-      }
-      if (ctx.input_is_active(socket)) {
-        return true;
-      }
-    }
-    else if (item->item_type == NODE_INTERFACE_PANEL) {
-      const auto &sub_interface_panel = *reinterpret_cast<const bNodeTreeInterfacePanel *>(item);
-      if (interface_panel_affects_output(ctx, sub_interface_panel)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-static void draw_interface_panel_content(
-    DrawGroupInputsContext &ctx,
-    ui::Layout &layout,
-    const bNodeTreeInterfacePanel &interface_panel,
-    const bool skip_first = false,
-    const std::optional<StringRef> parent_name = std::nullopt);
-
-static void draw_interface_panel_as_panel(DrawGroupInputsContext &ctx,
-                                          ui::Layout &layout,
-                                          const bNodeTreeInterfacePanel &interface_panel)
-{
-  if (!interface_panel_has_socket(ctx, interface_panel)) {
-    return;
-  }
-  PointerRNA panels_ptr = RNA_pointer_get(ctx.properties_ptr, "panels");
-  const std::string panel_open_name = fmt::format("open_{}", interface_panel.identifier);
-  ui::PanelLayout panel_layout;
-  bool skip_first = false;
-  /* Check if the panel should have a toggle in the header. */
-  const bNodeTreeInterfaceSocket *toggle_socket = interface_panel.header_toggle_socket();
-  const StringRef panel_name = interface_panel.name;
-  if (toggle_socket && !(toggle_socket->flag & NODE_INTERFACE_SOCKET_HIDE_IN_MODIFIER)) {
-    PointerRNA inputs_ptr = RNA_pointer_get(ctx.properties_ptr, "inputs");
-    PointerRNA toggle_ptr = RNA_pointer_get(&inputs_ptr, toggle_socket->identifier);
-    panel_layout = layout.panel_prop_with_bool_header(
-        &ctx.C, &panels_ptr, panel_open_name, &toggle_ptr, "value", IFACE_(panel_name));
-    skip_first = true;
-  }
-  else {
-    panel_layout = layout.panel_prop(&ctx.C, &panels_ptr, panel_open_name);
-    panel_layout.header->label(IFACE_(panel_name), ICON_NONE);
-  }
-  if (!interface_panel_affects_output(ctx, interface_panel)) {
-    panel_layout.header->active_set(false);
-  }
-  uiLayoutSetTooltipFunc(
-      panel_layout.header,
-      [](bContext * /*C*/, void *panel_arg, const StringRef /*tip*/) -> std::string {
-        const auto *panel = static_cast<bNodeTreeInterfacePanel *>(panel_arg);
-        return StringRef(panel->description);
-      },
-      const_cast<bNodeTreeInterfacePanel *>(&interface_panel),
-      nullptr,
-      nullptr);
-  if (panel_layout.body) {
-    draw_interface_panel_content(ctx, *panel_layout.body, interface_panel, skip_first, panel_name);
-  }
-}
-
-static void draw_interface_panel_content(DrawGroupInputsContext &ctx,
-                                         ui::Layout &layout,
-                                         const bNodeTreeInterfacePanel &interface_panel,
-                                         const bool skip_first,
-                                         const std::optional<StringRef> parent_name)
-{
-  for (const bNodeTreeInterfaceItem *item : interface_panel.items().drop_front(skip_first ? 1 : 0))
-  {
-    switch (eNodeTreeInterfaceItemType(item->item_type)) {
-      case NODE_INTERFACE_PANEL: {
-        const auto &sub_interface_panel = *reinterpret_cast<const bNodeTreeInterfacePanel *>(item);
-        draw_interface_panel_as_panel(ctx, layout, sub_interface_panel);
-        break;
-      }
-      case NODE_INTERFACE_SOCKET: {
-        const auto &interface_socket = *reinterpret_cast<const bNodeTreeInterfaceSocket *>(item);
-        if (interface_socket.flag & NODE_INTERFACE_SOCKET_INPUT) {
-          if (!(interface_socket.flag & NODE_INTERFACE_SOCKET_HIDE_IN_MODIFIER)) {
-            PointerRNA inputs_ptr = RNA_pointer_get(ctx.properties_ptr, "inputs");
-            PointerRNA socket_props_ptr = RNA_pointer_get(&inputs_ptr,
-                                                          interface_socket.identifier);
-            draw_property_for_socket(
-                ctx, layout, interface_socket, &socket_props_ptr, parent_name);
-          }
-        }
-        break;
-      }
-    }
-  }
-}
-
 static std::string get_node_warning_panel_name(const int num_errors,
                                                const int num_warnings,
                                                const int num_infos)
@@ -1030,7 +898,19 @@ void draw_geometry_nodes_modifier_ui(const bContext &C,
     nmd.runtime->usage_cache.ensure(object, nmd);
     ctx.input_usages = nmd.runtime->usage_cache.inputs;
     ctx.output_usages = nmd.runtime->usage_cache.outputs;
-    draw_interface_panel_content(ctx, layout, nmd.node_group->tree_interface.root_panel);
+    draw_interface_panel_content(
+        C,
+        layout,
+        &properties_ptr,
+        nmd.node_group->tree_interface.root_panel,
+        [&](const bNodeTreeInterfaceSocket &socket) { return ctx.input_is_visible(socket); },
+        [&](const bNodeTreeInterfaceSocket &socket) { return ctx.input_is_active(socket); },
+        [&](ui::Layout &layout,
+            const bNodeTreeInterfaceSocket &socket,
+            PointerRNA *socket_props_ptr,
+            const std::optional<StringRef> parent_name) {
+          draw_property_for_socket(ctx, layout, socket, socket_props_ptr, parent_name);
+        });
   }
 
   modifier_error_message_draw(layout, modifier_ptr);
@@ -1092,7 +972,19 @@ void draw_geometry_nodes_operator_redo_ui(const bContext &C,
   ctx.output_usages.reinitialize(tree.interface_outputs().size());
   nodes::socket_usage_inference::infer_group_interface_inputs_usage(
       tree, *ctx.properties_ptr, ctx.input_usages, ctx.output_usages);
-  draw_interface_panel_content(ctx, layout, tree.tree_interface.root_panel);
+  draw_interface_panel_content(
+      C,
+      layout,
+      op.ptr,
+      tree.tree_interface.root_panel,
+      [&](const bNodeTreeInterfaceSocket &socket) { return ctx.input_is_visible(socket); },
+      [&](const bNodeTreeInterfaceSocket &socket) { return ctx.input_is_active(socket); },
+      [&](ui::Layout &layout,
+          const bNodeTreeInterfaceSocket &socket,
+          PointerRNA *socket_props_ptr,
+          const std::optional<StringRef> parent_name) {
+        draw_property_for_socket(ctx, layout, socket, socket_props_ptr, parent_name);
+      });
 }
 
 }  // namespace blender::nodes

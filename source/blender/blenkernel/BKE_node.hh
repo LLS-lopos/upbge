@@ -150,11 +150,10 @@ using NodeBlendWriteFunction = void (*)(const bNodeTree &tree,
                                         BlendWriter &writer);
 using NodeBlendDataReadFunction = void (*)(bNodeTree &tree, bNode &node, BlendDataReader &reader);
 
-using SocketMakeGeometryNodesInputSrnaFunction =
-    void (*)(const bNodeTree &tree,
-             StructRNA &srna,
-             const bNodeTreeInterfaceSocket &io_socket,
-             nodes::GeneratedTreeSrnaData &r_generated);
+using SocketMakeNodesInputSrnaFunction = void (*)(const bNodeTree &tree,
+                                                  StructRNA &srna,
+                                                  const bNodeTreeInterfaceSocket &io_socket,
+                                                  nodes::GeneratedTreeSrnaData &r_generated);
 
 /**
  * \brief Defines a socket type.
@@ -216,7 +215,8 @@ struct bNodeSocketType {
   /* Default value for this socket type. */
   const SocketValueVariant *geometry_nodes_default_value = nullptr;
 
-  SocketMakeGeometryNodesInputSrnaFunction make_geometry_nodes_input_srna = nullptr;
+  SocketMakeNodesInputSrnaFunction make_geometry_nodes_input_srna = nullptr;
+  SocketMakeNodesInputSrnaFunction make_compositor_nodes_input_srna = nullptr;
 };
 
 using NodeInitExecFunction = void *(*)(bNodeExecContext * context,

@@ -288,7 +288,10 @@ std::unique_ptr<DropTargetInterface> region_views_find_drop_target_at(const AReg
         last_item = &item;
       });
       if (last_item) {
-        return last_item->create_item_drop_target();
+        std::optional<rctf> rct = last_item->get_win_rect(*region);
+        if (rct && xy[1] < rct->ymin) {
+          return last_item->create_item_drop_target();
+        }
       }
     }
   }

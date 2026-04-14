@@ -29,8 +29,6 @@
 
 namespace blender::ui {
 
-using blender::Vector;
-
 struct CurveRuntimeProperties {
   CurveProfilePoint *last_pt = nullptr;
   float2 last_pos;

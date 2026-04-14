@@ -74,6 +74,7 @@ void PixelOperation::compute_results_reference_counts(const Schedule &schedule)
            * that are part of the pixel operations are internal and do not deal with the result
            * directly. */
           return schedule.nodes.contains(&input.owner_node()) &&
+                 !schedule.unneeded_inputs.contains(&input) &&
                  !compile_unit_.contains(&input.owner_node());
         });
 

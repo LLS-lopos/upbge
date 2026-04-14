@@ -217,12 +217,12 @@ class ForwardPipeline {
                                      blender::Material *blender_mat,
                                      GPUMaterial *gpumat);
 
-  PassMain::Sub *prepass_transparent_add(const Object *ob,
-                                         blender::Material *blender_mat,
-                                         GPUMaterial *gpumat);
-  PassMain::Sub *material_transparent_add(const Object *ob,
-                                          blender::Material *blender_mat,
-                                          GPUMaterial *gpumat);
+  void transparent_add(const Object *ob,
+                       const float3 &ob_location,
+                       blender::Material *blender_mat,
+                       GPUMaterial *gpumat,
+                       PassMain::Sub *&r_prepass_subpass,
+                       PassMain::Sub *&r_material_subpass);
 
   bool use_colored_transparency() const;
 
@@ -491,7 +491,7 @@ struct VolumeObjectBounds {
   /* Combined bounds in Z. Allow tighter integration bounds. */
   std::optional<Bounds<float>> z_range;
 
-  VolumeObjectBounds(const Camera &camera, Object *ob);
+  VolumeObjectBounds(const Camera &camera, const ObjectHandle &ob_handle, int instance_index);
 };
 
 /**
@@ -557,11 +557,7 @@ class VolumePipeline {
   void sync();
   void render(View &view, Texture &occupancy_tx);
 
-  /**
-   * Returns correct volume layer for a given object and add the object to the layer.
-   * Returns nullptr if the object is not visible at all.
-   */
-  VolumeLayer *register_and_get_layer(Object *ob);
+  VolumeLayer *register_and_get_layer(const VolumeObjectBounds &object_bounds);
 
   std::optional<Bounds<float>> object_integration_range() const;
 

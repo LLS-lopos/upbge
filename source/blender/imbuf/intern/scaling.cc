@@ -88,10 +88,41 @@ static inline void store_pixel(float4 pix, float4 *ptr)
   *ptr = pix;
 }
 
-struct ScaleDownX {
-  template<typename T>
-  static void op(const T *src, T *dst, int ibufx, int ibufy, int newx, int /*newy*/, bool threaded)
-  {
+template<typename Fn>
+static void to_static_pixel_type(const ImBuf *ibuf,
+                                 uchar4 *dst_byte,
+                                 float *dst_float,
+                                 const Fn &fn)
+{
+  if (dst_byte != nullptr) {
+    const uchar4 *src = reinterpret_cast<const uchar4 *>(ibuf->byte_data());
+    fn(src, dst_byte);
+  }
+  if (dst_float != nullptr) {
+    if (ibuf->channels == 1) {
+      fn(ibuf->float_data(), dst_float);
+    }
+    else if (ibuf->channels == 2) {
+      const float2 *src = reinterpret_cast<const float2 *>(ibuf->float_data());
+      fn(src, reinterpret_cast<float2 *>(dst_float));
+    }
+    else if (ibuf->channels == 3) {
+      const float3 *src = reinterpret_cast<const float3 *>(ibuf->float_data());
+      fn(src, reinterpret_cast<float3 *>(dst_float));
+    }
+    else if (ibuf->channels == 4) {
+      const float4 *src = reinterpret_cast<const float4 *>(ibuf->float_data());
+      fn(src, reinterpret_cast<float4 *>(dst_float));
+    }
+  }
+}
+
+static void scale_down_x_func(
+    const ImBuf *ibuf, int newx, int /*newy*/, uchar4 *dst_byte, float *dst_float, bool threaded)
+{
+  const int ibufx = ibuf->x;
+  const int ibufy = ibuf->y;
+  to_static_pixel_type(ibuf, dst_byte, dst_float, [&]<typename T>(const T *src, T *dst) {
     const float add = (ibufx - 0.01f) / newx;
     const float inv_add = 1.0f / add;
 
@@ -123,13 +154,15 @@ struct ScaleDownX {
         }
       }
     });
-  }
-};
+  });
+}
 
-struct ScaleDownY {
-  template<typename T>
-  static void op(const T *src, T *dst, int ibufx, int ibufy, int /*newx*/, int newy, bool threaded)
-  {
+static void scale_down_y_func(
+    const ImBuf *ibuf, int /*newx*/, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
+{
+  const int ibufx = ibuf->x;
+  const int ibufy = ibuf->y;
+  to_static_pixel_type(ibuf, dst_byte, dst_float, [&]<typename T>(const T *src, T *dst) {
     const float add = (ibufy - 0.01f) / newy;
     const float inv_add = 1.0f / add;
 
@@ -161,13 +194,15 @@ struct ScaleDownY {
         }
       }
     });
-  }
-};
+  });
+}
 
-struct ScaleUpX {
-  template<typename T>
-  static void op(const T *src, T *dst, int ibufx, int ibufy, int newx, int /*newy*/, bool threaded)
-  {
+static void scale_up_x_func(
+    const ImBuf *ibuf, int newx, int /*newy*/, uchar4 *dst_byte, float *dst_float, bool threaded)
+{
+  const int ibufx = ibuf->x;
+  const int ibufy = ibuf->y;
+  to_static_pixel_type(ibuf, dst_byte, dst_float, [&]<typename T>(const T *src, T *dst) {
     const float add = (ibufx - 0.001f) / newx;
     /* Special case: source is 1px wide (see #70356). */
     if (UNLIKELY(ibufx == 1)) {
@@ -213,13 +248,15 @@ struct ScaleUpX {
         }
       });
     }
-  }
-};
+  });
+}
 
-struct ScaleUpY {
-  template<typename T>
-  static void op(const T *src, T *dst, int ibufx, int ibufy, int /*newx*/, int newy, bool threaded)
-  {
+static void scale_up_y_func(
+    const ImBuf *ibuf, int /*newx*/, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
+{
+  const int ibufx = ibuf->x;
+  const int ibufy = ibuf->y;
+  to_static_pixel_type(ibuf, dst_byte, dst_float, [&]<typename T>(const T *src, T *dst) {
     const float add = (ibufy - 0.001f) / newy;
     /* Special case: source is 1px high (see #70356). */
     if (UNLIKELY(ibufy == 1)) {
@@ -264,67 +301,7 @@ struct ScaleUpY {
         }
       });
     }
-  }
-};
-
-template<typename T>
-static void instantiate_pixel_op(T & /*op*/,
-                                 const ImBuf *ibuf,
-                                 int newx,
-                                 int newy,
-                                 uchar4 *dst_byte,
-                                 float *dst_float,
-                                 bool threaded)
-{
-  if (dst_byte != nullptr) {
-    const uchar4 *src = reinterpret_cast<const uchar4 *>(ibuf->byte_data());
-    T::op(src, dst_byte, ibuf->x, ibuf->y, newx, newy, threaded);
-  }
-  if (dst_float != nullptr) {
-    if (ibuf->channels == 1) {
-      T::op(ibuf->float_data(), dst_float, ibuf->x, ibuf->y, newx, newy, threaded);
-    }
-    else if (ibuf->channels == 2) {
-      const float2 *src = reinterpret_cast<const float2 *>(ibuf->float_data());
-      T::op(src, reinterpret_cast<float2 *>(dst_float), ibuf->x, ibuf->y, newx, newy, threaded);
-    }
-    else if (ibuf->channels == 3) {
-      const float3 *src = reinterpret_cast<const float3 *>(ibuf->float_data());
-      T::op(src, reinterpret_cast<float3 *>(dst_float), ibuf->x, ibuf->y, newx, newy, threaded);
-    }
-    else if (ibuf->channels == 4) {
-      const float4 *src = reinterpret_cast<const float4 *>(ibuf->float_data());
-      T::op(src, reinterpret_cast<float4 *>(dst_float), ibuf->x, ibuf->y, newx, newy, threaded);
-    }
-  }
-}
-
-static void scale_down_x_func(
-    const ImBuf *ibuf, int newx, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
-{
-  ScaleDownX op;
-  instantiate_pixel_op(op, ibuf, newx, newy, dst_byte, dst_float, threaded);
-}
-
-static void scale_down_y_func(
-    const ImBuf *ibuf, int newx, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
-{
-  ScaleDownY op;
-  instantiate_pixel_op(op, ibuf, newx, newy, dst_byte, dst_float, threaded);
-}
-
-static void scale_up_x_func(
-    const ImBuf *ibuf, int newx, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
-{
-  ScaleUpX op;
-  instantiate_pixel_op(op, ibuf, newx, newy, dst_byte, dst_float, threaded);
-}
-
-static void scale_up_y_func(
-    const ImBuf *ibuf, int newx, int newy, uchar4 *dst_byte, float *dst_float, bool threaded)
-{
-  ScaleUpY op;
-  instantiate_pixel_op(op, ibuf, newx, newy, dst_byte, dst_float, threaded);
+  });
 }
 
 using ScaleFunction = void (*)(

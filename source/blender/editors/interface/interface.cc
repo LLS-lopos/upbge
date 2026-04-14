@@ -76,11 +76,8 @@
 
 #include "interface_intern.hh"
 
-namespace blender {
-
+namespace blender::ui {
 static CLG_LogRef LOG = {"ui"};
-
-namespace ui {
 
 /* prototypes. */
 static void def_but_rna__menu(bContext *C, Layout *layout, void *but_p);
@@ -1231,6 +1228,16 @@ static bool but_update_from_old_block(Block *block,
   Button *oldbut = oldbut_uptr->get();
 
   BLI_assert(!matched_old_buttons.contains(oldbut));
+
+  if (oldbut->type == ButtonType::TextBox) {
+    ButtonTextBox *textbox = static_cast<ButtonTextBox *>(but);
+    ButtonTextBox *old_textbox = static_cast<ButtonTextBox *>(oldbut);
+    textbox->last_total_lines = old_textbox->last_total_lines;
+    /* Steal text wrap cache if the old textbox is not active. */
+    if (!(oldbut->active || oldbut->semi_modal_state)) {
+      textbox->wrap_cache = std::move(old_textbox->wrap_cache);
+    }
+  }
 
   if (oldbut->active || oldbut->semi_modal_state) {
     /* Move button over from oldblock to new block. */
@@ -3153,7 +3160,7 @@ void button_value_set(Button *but, double value)
 
 int button_string_get_maxncpy(Button *but)
 {
-  if (ELEM(but->type, ButtonType::Text, ButtonType::SearchMenu)) {
+  if (ELEM(but->type, ButtonType::Text, ButtonType::TextBox, ButtonType::SearchMenu)) {
     return but->hardmax;
   }
   return UI_MAX_DRAW_STR;
@@ -3278,6 +3285,13 @@ static float get_but_step_unit(Button *but, float step_default)
   return float(step_final);
 }
 
+static std::string textbox_string_get(ButtonTextBox *textbox)
+{
+  BLI_assert(textbox->rnaprop);
+  BLI_assert((RNA_property_type(textbox->rnaprop) == PROP_STRING));
+  return RNA_property_string_get(&textbox->rnapoin, textbox->rnaprop);
+}
+
 void button_string_get_ex(Button *but,
                           char *str,
                           const size_t str_maxncpy,
@@ -3343,6 +3357,11 @@ void button_string_get_ex(Button *but,
       }
       MEM_delete(buf);
     }
+  }
+  else if (but->rnaprop && but->type == ButtonType::TextBox) {
+    BLI_assert(RNA_property_type(but->rnaprop) == PROP_STRING);
+    std::string buf = RNA_property_string_get(&but->rnapoin, but->rnaprop);
+    BLI_strncpy_utf8(str, buf.data(), str_maxncpy);
   }
   else if (ELEM(but->type, ButtonType::Text, ButtonType::SearchMenu)) {
     /* string */
@@ -3457,6 +3476,11 @@ char *button_string_get_dynamic(Button *but, int *r_str_size)
     else {
       BLI_assert(0);
     }
+  }
+  else if (but->rnaprop && but->type == ButtonType::TextBox) {
+    BLI_assert(RNA_property_type(but->rnaprop) == PROP_STRING);
+    str = RNA_property_string_get_alloc(&but->rnapoin, but->rnaprop, nullptr, 0, r_str_size);
+    *r_str_size += 1;
   }
   else {
     BLI_assert(0);
@@ -3578,7 +3602,7 @@ bool button_string_eval_number(bContext *C, const Button *but, const char *str, 
 bool button_string_set(bContext *C, Button *but, const char *str)
 {
   if (but->rnaprop && but->rnapoin.data &&
-      ELEM(but->type, ButtonType::Text, ButtonType::SearchMenu))
+      ELEM(but->type, ButtonType::Text, ButtonType::TextBox, ButtonType::SearchMenu))
   {
     if (RNA_property_editable(&but->rnapoin, but->rnaprop)) {
       const PropertyType type = RNA_property_type(but->rnaprop);
@@ -4374,6 +4398,11 @@ static void but_update_ex(Button *but, const bool validate)
 
       break;
 
+    case ButtonType::TextBox:
+      if (!but->editstr) {
+        but->drawstr = textbox_string_get(static_cast<ButtonTextBox *>(but));
+      }
+      break;
     case ButtonType::Text:
     case ButtonType::SearchMenu:
       if (!but->editstr) {
@@ -4484,6 +4513,9 @@ static std::unique_ptr<Button> but_new(const ButtonType type)
   std::unique_ptr<Button> but{};
 
   switch (type) {
+    case ButtonType::TextBox:
+      but = std::make_unique<ButtonTextBox>();
+      break;
     case ButtonType::Num:
       but = std::make_unique<ButtonNumber>();
       break;
@@ -4642,6 +4674,7 @@ static Button *def_but(Block *block,
            ELEM(but->type,
                 ButtonType::Menu,
                 ButtonType::Text,
+                ButtonType::TextBox,
                 ButtonType::Label,
                 ButtonType::Block,
                 ButtonType::ButMenu,
@@ -7020,6 +7053,13 @@ void button_label_alpha_factor_set(Button *but, const float alpha_factor)
   but_label->alpha_factor = alpha_factor;
 }
 
+void button_label_draw_icon_border_set(Button *but, const bool use_icon_border)
+{
+  ButtonLabel *but_label = reinterpret_cast<ButtonLabel *>(but);
+  BLI_assert(but->type == ButtonType::Label);
+  but_label->draw_icon_border = use_icon_border;
+}
+
 void button_search_preview_grid_size_set(Button *but, int rows, int cols)
 {
   BLI_assert(but->type == ButtonType::SearchMenu);
@@ -7326,6 +7366,11 @@ void interface_tag_script_reload()
   interface_tag_script_reload_queries();
 }
 
+int button_text_padding(const Button *button)
+{
+  return round_fl_to_int((UI_TEXT_MARGIN_X * U.widget_unit) / button->block->aspect);
+}
+
 std::string button_get_link(const Button *button, bContext *C)
 {
   BLI_assert(button_opens_link(button));
@@ -7358,5 +7403,4 @@ std::string button_get_link(const Button *button, bContext *C)
 #endif
 }
 
-}  // namespace ui
-}  // namespace blender
+}  // namespace blender::ui

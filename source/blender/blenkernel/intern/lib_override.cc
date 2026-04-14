@@ -52,9 +52,9 @@
 
 #include "BLO_readfile.hh"
 
-#include "BLI_ghash.h"
 #include "BLI_linklist.h"
 #include "BLI_listbase.h"
+#include "BLI_map.hh"
 #include "BLI_memarena.h"
 #include "BLI_set.hh"
 #include "BLI_string.h"
@@ -87,7 +87,8 @@ static CLG_LogRef LOG = {"lib.override"};
 static CLG_LogRef LOG_RESYNC = {"lib.override.resync"};
 
 struct IDOverrideLibraryRuntime {
-  struct GHash *rna_path_to_override_properties = nullptr;
+  std::optional<Map<StringRefNull, IDOverrideLibraryProperty *>> rna_path_to_override_properties =
+      std::nullopt;
   IDOverrideLibraryTag tag = IDOverrideLibraryTag(0);
 };
 
@@ -239,9 +240,8 @@ void BKE_lib_override_library_clear(IDOverrideLibrary *liboverride, const bool d
 {
   BLI_assert(liboverride != nullptr);
 
-  if (!ELEM(nullptr, liboverride->runtime, liboverride->runtime->rna_path_to_override_properties))
-  {
-    BLI_ghash_clear(liboverride->runtime->rna_path_to_override_properties, nullptr, nullptr);
+  if (liboverride->runtime && liboverride->runtime->rna_path_to_override_properties) {
+    liboverride->runtime->rna_path_to_override_properties->clear();
   }
 
   for (IDOverrideLibraryProperty &op : liboverride->properties) {
@@ -260,9 +260,6 @@ void BKE_lib_override_library_free(IDOverrideLibrary **liboverride, const bool d
   BLI_assert(*liboverride != nullptr);
 
   if ((*liboverride)->runtime != nullptr) {
-    if ((*liboverride)->runtime->rna_path_to_override_properties != nullptr) {
-      BLI_ghash_free((*liboverride)->runtime->rna_path_to_override_properties, nullptr, nullptr);
-    }
     MEM_SAFE_DELETE((*liboverride)->runtime);
   }
 
@@ -857,13 +854,13 @@ struct LibOverrideGroupTagData {
 
   /* Mapping linked objects to all their instantiating collections (as a linked list).
    * Avoids calling #BKE_collection_object_find over and over, this function is very expansive. */
-  GHash *linked_object_to_instantiating_collections;
+  Map<Object *, LinkNodePair *> linked_object_to_instantiating_collections;
   MemArena *mem_arena;
 
   void clear()
   {
     linked_ids_hierarchy_default_override.clear();
-    BLI_ghash_free(linked_object_to_instantiating_collections, nullptr, nullptr);
+    linked_object_to_instantiating_collections.clear();
     BLI_memarena_free(mem_arena);
 
     bmain = nullptr;
@@ -888,15 +885,13 @@ static void lib_override_group_tag_data_object_to_collection_init_collection_pro
       continue;
     }
 
-    LinkNodePair **collections_linkedlist_p;
-    if (!BLI_ghash_ensure_p(data->linked_object_to_instantiating_collections,
-                            ob,
-                            reinterpret_cast<void ***>(&collections_linkedlist_p)))
-    {
-      *collections_linkedlist_p = static_cast<LinkNodePair *>(
-          BLI_memarena_calloc(data->mem_arena, sizeof(**collections_linkedlist_p)));
-    }
-    BLI_linklist_append_arena(*collections_linkedlist_p, collection, data->mem_arena);
+    LinkNodePair *collections_linkedlist =
+        data->linked_object_to_instantiating_collections.lookup_or_add_cb_as(
+            ob, [data]() -> LinkNodePair * {
+              return static_cast<LinkNodePair *>(
+                  BLI_memarena_calloc(data->mem_arena, sizeof(LinkNodePair)));
+            });
+    BLI_linklist_append_arena(collections_linkedlist, collection, data->mem_arena);
   }
 }
 
@@ -909,8 +904,6 @@ static void lib_override_group_tag_data_object_to_collection_init(LibOverrideGro
 {
   data->mem_arena = BLI_memarena_new(BLI_MEMARENA_STD_BUFSIZE, __func__);
 
-  data->linked_object_to_instantiating_collections = BLI_ghash_new(
-      BLI_ghashutil_ptrhash, BLI_ghashutil_ptrcmp, __func__);
   if (data->scene != nullptr) {
     lib_override_group_tag_data_object_to_collection_init_collection_process(
         data, data->scene->master_collection);
@@ -1296,7 +1289,7 @@ static void lib_override_linked_group_tag(LibOverrideGroupTagData *data)
       /* Loop over all collections instantiating the object, if we already have a 'locale' one we
        * have nothing to do, otherwise try to find a 'linked' one that we can override too. */
       LinkNodePair *instantiating_collection_linklist = static_cast<LinkNodePair *>(
-          BLI_ghash_lookup(data->linked_object_to_instantiating_collections, &ob));
+          data->linked_object_to_instantiating_collections.lookup_default_as(&ob, nullptr));
       if (instantiating_collection_linklist != nullptr) {
         for (LinkNode *instantiating_collection_linknode = instantiating_collection_linklist->list;
              instantiating_collection_linknode != nullptr;
@@ -1503,7 +1496,7 @@ static void lib_override_library_create_post_process(Main *bmain,
   /* We need to use the `_remap` version here as we prevented any LayerCollection resync during the
    * whole liboverride resyncing, which involves a lot of ID remapping.
    *
-   * Otherwise, cached Base GHash e.g. can contain invalid stale data. */
+   * Otherwise, cached Base Map e.g. can contain invalid stale data. */
   BKE_main_collection_sync_remap(bmain);
 
   /* We create a set of all objects referenced into the scene by its hierarchy of collections.
@@ -2131,7 +2124,7 @@ void BKE_lib_override_library_main_hierarchy_root_ensure(
 static void lib_override_library_remap(Main *bmain,
                                        const ID *id_root_reference,
                                        Vector<std::pair<ID *, ID *>> &references_and_new_overrides,
-                                       GHash *linkedref_to_old_override)
+                                       Map<ID *, ID *> &linkedref_to_old_override)
 {
   id::IDRemapper remapper_overrides_old_to_new;
   Vector<ID *> nomain_ids;
@@ -2147,26 +2140,22 @@ static void lib_override_library_remap(Main *bmain,
   /* Add remapping from old to new overrides. */
   for (auto [id_reference, id_override_new] : references_and_new_overrides) {
     new_overrides.append(id_override_new);
-    ID *id_override_old = static_cast<ID *>(
-        BLI_ghash_lookup(linkedref_to_old_override, id_reference));
+    ID *id_override_old = linkedref_to_old_override.lookup_default_as(id_reference, nullptr);
     if (id_override_old == nullptr) {
       continue;
     }
     remapper_overrides_old_to_new.add(id_override_old, id_override_new);
   }
 
-  GHashIterator linkedref_to_old_override_iter;
-  GHASH_ITER (linkedref_to_old_override_iter, linkedref_to_old_override) {
+  for (auto item_iter : linkedref_to_old_override.items()) {
     /* Remap no-main override IDs we just created too. */
-    ID *id_override_old_iter = static_cast<ID *>(
-        BLI_ghashIterator_getValue(&linkedref_to_old_override_iter));
+    ID *id_override_old_iter = item_iter.value;
     if ((id_override_old_iter->tag & ID_TAG_NO_MAIN) != 0) {
       nomain_ids.append(id_override_old_iter);
     }
     /* And remap linked data to old (existing, unchanged) overrides, when no new one was created.
      */
-    ID *id_reference_iter = static_cast<ID *>(
-        BLI_ghashIterator_getKey(&linkedref_to_old_override_iter));
+    ID *id_reference_iter = item_iter.key;
 
     /* NOTE: Usually `id_reference_iter->lib == id_root_reference->lib` should always be true.
      * However, there are some cases where it is not, e.g. if the linked reference of a liboverride
@@ -2279,7 +2268,9 @@ static LibOverrideMissingIDsData lib_override_library_resync_build_missing_ids_d
 }
 
 static ID *lib_override_library_resync_search_missing_ids_data(
-    LibOverrideMissingIDsData &missing_ids, GHash *linkedref_to_old_override, ID *id_override)
+    LibOverrideMissingIDsData &missing_ids,
+    Map<ID *, ID *> &linkedref_to_old_override,
+    ID *id_override)
 {
   LibOverrideMissingIDsData_Key key = lib_override_library_resync_missing_id_key(id_override);
   const LibOverrideMissingIDsData::iterator value = missing_ids.find(key);
@@ -2298,7 +2289,7 @@ static ID *lib_override_library_resync_search_missing_ids_data(
      * Not a very common situation, but see e.g. #156601 for a reproducible case.
      */
     if (ID_IS_OVERRIDE_LIBRARY_REAL(match_id) &&
-        BLI_ghash_haskey(linkedref_to_old_override, match_id->override_library->reference))
+        linkedref_to_old_override.contains_as(match_id->override_library->reference))
     {
       continue;
     }
@@ -2358,8 +2349,7 @@ static bool lib_override_library_resync(Main *bmain,
 
   /* Mapping 'linked reference IDs' -> 'Local override IDs' of existing overrides, populated from
    * each sub-tree that actually needs to be resynced. */
-  GHash *linkedref_to_old_override = BLI_ghash_new(
-      BLI_ghashutil_ptrhash, BLI_ghashutil_ptrcmp, __func__);
+  Map<ID *, ID *> linkedref_to_old_override;
 
   /* Only tag linked IDs from related linked reference hierarchy that are actually part of
    * the sub-trees of each detected sub-roots needing resync. */
@@ -2393,7 +2383,6 @@ static bool lib_override_library_resync(Main *bmain,
           "Impossible to resync data-block %s and its dependencies, as its linked reference "
           "is missing",
           id_root->name + 2);
-      BLI_ghash_free(linkedref_to_old_override, nullptr, nullptr);
       BKE_main_relations_free(bmain);
       data.clear();
       return false;
@@ -2470,8 +2459,8 @@ static bool lib_override_library_resync(Main *bmain,
       }
       BLI_assert(GS(reference_id->name) == GS(id->name));
 
-      if (!BLI_ghash_haskey(linkedref_to_old_override, reference_id)) {
-        BLI_ghash_insert(linkedref_to_old_override, reference_id, id);
+      if (!linkedref_to_old_override.contains_as(reference_id)) {
+        linkedref_to_old_override.add_as(reference_id, id);
         if (!ID_IS_OVERRIDE_LIBRARY_REAL(id) || (id->tag & ID_TAG_DOIT) == 0) {
           continue;
         }
@@ -2516,7 +2505,6 @@ static bool lib_override_library_resync(Main *bmain,
       false);
 
   if (!success) {
-    BLI_ghash_free(linkedref_to_old_override, nullptr, nullptr);
     return success;
   }
 
@@ -2548,8 +2536,8 @@ static bool lib_override_library_resync(Main *bmain,
       ID *id_override_new = id_reference_iter->newid;
       references_and_new_overrides.append(std::make_pair(id_reference_iter, id_override_new));
 
-      ID *id_override_old = static_cast<ID *>(
-          BLI_ghash_lookup(linkedref_to_old_override, id_reference_iter));
+      ID *id_override_old = linkedref_to_old_override.lookup_default_as(id_reference_iter,
+                                                                        nullptr);
 
       BLI_assert((id_override_new->tag & ID_TAG_LIBOVERRIDE_NEED_RESYNC) == 0);
 
@@ -2571,13 +2559,12 @@ static bool lib_override_library_resync(Main *bmain,
             missing_ids_data, linkedref_to_old_override, id_override_new);
         BLI_assert(id_override_old == nullptr || id_override_old->lib == id_override_new->lib);
         if (id_override_old != nullptr) {
-          BLI_ghash_insert(linkedref_to_old_override, id_reference_iter, id_override_old);
+          linkedref_to_old_override.add_as(id_reference_iter, id_override_old);
 
           Key *key_override_old = BKE_key_from_id(id_override_old);
           Key *key_reference_iter = BKE_key_from_id(id_reference_iter);
           if (key_reference_iter && key_override_old) {
-            BLI_ghash_insert(
-                linkedref_to_old_override, &key_reference_iter->id, &key_override_old->id);
+            linkedref_to_old_override.add_as(&key_reference_iter->id, &key_override_old->id);
           }
 
           CLOG_DEBUG(&LOG_RESYNC,
@@ -2674,7 +2661,7 @@ static bool lib_override_library_resync(Main *bmain,
       continue;
     }
 
-    ID *id_override_old = static_cast<ID *>(BLI_ghash_lookup(linkedref_to_old_override, id));
+    ID *id_override_old = linkedref_to_old_override.lookup_default_as(id, nullptr);
     if (id_override_old == nullptr) {
       continue;
     }
@@ -2692,8 +2679,8 @@ static bool lib_override_library_resync(Main *bmain,
         Key *key_linked_reference = BKE_key_from_id(id_override_new->override_library->reference);
         BLI_assert(key_linked_reference != nullptr);
         BLI_assert(key_linked_reference->id.newid == &(*key_override_old_p)->id);
-        Key *key_override_old = static_cast<Key *>(
-            BLI_ghash_lookup(linkedref_to_old_override, &key_linked_reference->id));
+        Key *key_override_old = id_cast<Key *>(
+            linkedref_to_old_override.lookup_default_as(&key_linked_reference->id, nullptr));
         BLI_assert(key_override_old != nullptr);
         *key_override_old_p = key_override_old;
       }
@@ -2804,7 +2791,7 @@ static bool lib_override_library_resync(Main *bmain,
        * So instead store old liboverrides in Main into a temp list again, and do the tagging
        * separately once this loop over all IDs in main is done. */
       if (id->newid != nullptr && id->lib == id_root_reference->lib) {
-        ID *id_override_old = static_cast<ID *>(BLI_ghash_lookup(linkedref_to_old_override, id));
+        ID *id_override_old = linkedref_to_old_override.lookup_default_as(id, nullptr);
 
         if (id_override_old != nullptr) {
           id->newid->tag &= ~ID_TAG_DOIT;
@@ -2883,8 +2870,8 @@ static bool lib_override_library_resync(Main *bmain,
   }
   id_override_old_vector.clear();
 
-  /* Cleanup, many pointers in this GHash are already invalid now. */
-  BLI_ghash_free(linkedref_to_old_override, nullptr, nullptr);
+  /* Cleanup, many pointers in this Map are already invalid now. */
+  linkedref_to_old_override.clear();
 
   BKE_id_multi_tagged_delete(bmain, {.prevent_liboverride_hierarchy_root_ensure = true});
 
@@ -4114,30 +4101,33 @@ void BKE_lib_override_library_make_local(Main *bmain, ID *id)
   }
 }
 
-/* We only build override GHash on request. */
-BLI_INLINE GHash *override_library_rna_path_mapping_ensure(IDOverrideLibrary *liboverride)
+/* We only build override Map on request. */
+static Map<StringRefNull, IDOverrideLibraryProperty *> &override_library_rna_path_mapping_ensure(
+    IDOverrideLibrary *liboverride)
 {
   IDOverrideLibraryRuntime *liboverride_runtime = override_library_runtime_ensure(liboverride);
-  if (liboverride_runtime->rna_path_to_override_properties == nullptr) {
-    liboverride_runtime->rna_path_to_override_properties = BLI_ghash_new(
-        BLI_ghashutil_strhash_p_murmur, BLI_ghashutil_strcmp, __func__);
+  if (UNLIKELY(!liboverride_runtime->rna_path_to_override_properties)) {
+    liboverride_runtime->rna_path_to_override_properties =
+        std::make_optional<Map<StringRefNull, IDOverrideLibraryProperty *>>();
     for (IDOverrideLibraryProperty *op =
              static_cast<IDOverrideLibraryProperty *>(liboverride->properties.first);
          op != nullptr;
          op = op->next)
     {
-      BLI_ghash_insert(liboverride_runtime->rna_path_to_override_properties, op->rna_path, op);
+      liboverride_runtime->rna_path_to_override_properties->add(op->rna_path, op);
     }
   }
 
-  return liboverride_runtime->rna_path_to_override_properties;
+  return *liboverride_runtime->rna_path_to_override_properties;
 }
 
 IDOverrideLibraryProperty *BKE_lib_override_library_property_find(IDOverrideLibrary *liboverride,
                                                                   const char *rna_path)
 {
-  GHash *liboverride_runtime = override_library_rna_path_mapping_ensure(liboverride);
-  return static_cast<IDOverrideLibraryProperty *>(BLI_ghash_lookup(liboverride_runtime, rna_path));
+  Map<StringRefNull, IDOverrideLibraryProperty *> &liboverride_runtime =
+      override_library_rna_path_mapping_ensure(liboverride);
+  return static_cast<IDOverrideLibraryProperty *>(
+      liboverride_runtime.lookup_default(rna_path, nullptr));
 }
 
 IDOverrideLibraryProperty *BKE_lib_override_library_property_get(IDOverrideLibrary *liboverride,
@@ -4151,8 +4141,9 @@ IDOverrideLibraryProperty *BKE_lib_override_library_property_get(IDOverrideLibra
     op->rna_path = BLI_strdup(rna_path);
     BLI_addtail(&liboverride->properties, op);
 
-    GHash *liboverride_runtime = override_library_rna_path_mapping_ensure(liboverride);
-    BLI_ghash_insert(liboverride_runtime, op->rna_path, op);
+    Map<StringRefNull, IDOverrideLibraryProperty *> &liboverride_runtime =
+        override_library_rna_path_mapping_ensure(liboverride);
+    liboverride_runtime.add(op->rna_path, op);
 
     if (r_created) {
       *r_created = true;
@@ -4210,9 +4201,10 @@ bool BKE_lib_override_library_property_rna_path_change(IDOverrideLibrary *libove
                                                        const char *new_rna_path)
 {
   /* Find the override property by its old RNA path. */
-  GHash *liboverride_runtime = override_library_rna_path_mapping_ensure(liboverride);
-  IDOverrideLibraryProperty *liboverride_property = static_cast<IDOverrideLibraryProperty *>(
-      BLI_ghash_popkey(liboverride_runtime, old_rna_path, nullptr));
+  Map<StringRefNull, IDOverrideLibraryProperty *> &liboverride_runtime =
+      override_library_rna_path_mapping_ensure(liboverride);
+  IDOverrideLibraryProperty *liboverride_property = liboverride_runtime.pop_default(old_rna_path,
+                                                                                    nullptr);
 
   if (liboverride_property == nullptr) {
     return false;
@@ -4223,7 +4215,7 @@ bool BKE_lib_override_library_property_rna_path_change(IDOverrideLibrary *libove
   liboverride_property->rna_path = BLI_strdup(new_rna_path);
 
   /* Put property back into the lookup mapping, using the new RNA path. */
-  BLI_ghash_insert(liboverride_runtime, liboverride_property->rna_path, liboverride_property);
+  liboverride_runtime.add(liboverride_property->rna_path, liboverride_property);
 
   return true;
 }
@@ -4232,13 +4224,10 @@ static void lib_override_library_property_delete(IDOverrideLibrary *liboverride,
                                                  IDOverrideLibraryProperty *liboverride_property,
                                                  const bool do_runtime_updates)
 {
-  if (do_runtime_updates &&
-      !ELEM(nullptr, liboverride->runtime, liboverride->runtime->rna_path_to_override_properties))
+  if (do_runtime_updates && liboverride->runtime &&
+      liboverride->runtime->rna_path_to_override_properties)
   {
-    BLI_ghash_remove(liboverride->runtime->rna_path_to_override_properties,
-                     liboverride_property->rna_path,
-                     nullptr,
-                     nullptr);
+    liboverride->runtime->rna_path_to_override_properties->remove(liboverride_property->rna_path);
   }
   lib_override_library_property_clear(liboverride_property);
   BLI_freelinkN(&liboverride->properties, liboverride_property);
@@ -4248,9 +4237,10 @@ bool BKE_lib_override_library_property_search_and_delete(IDOverrideLibrary *libo
                                                          const char *rna_path)
 {
   /* Find the override property by its old RNA path. */
-  GHash *liboverride_runtime = override_library_rna_path_mapping_ensure(liboverride);
-  IDOverrideLibraryProperty *liboverride_property = static_cast<IDOverrideLibraryProperty *>(
-      BLI_ghash_popkey(liboverride_runtime, rna_path, nullptr));
+  Map<StringRefNull, IDOverrideLibraryProperty *> &liboverride_runtime =
+      override_library_rna_path_mapping_ensure(liboverride);
+  IDOverrideLibraryProperty *liboverride_property = liboverride_runtime.pop_default(rna_path,
+                                                                                    nullptr);
 
   if (liboverride_property == nullptr) {
     return false;

@@ -156,7 +156,9 @@ void NodeGroupOperation::map_node_operation_inputs_to_their_results(const bNode 
     }
 
     const bNodeSocket *output = get_output_linked_to_input(*input);
-    if (output && compile_state.get_schedule().nodes.contains(&output->owner_node())) {
+    if (output && compile_state.get_schedule().nodes.contains(&output->owner_node()) &&
+        !compile_state.get_schedule().unneeded_inputs.contains(input))
+    {
       /* The input is linked to a node that is part of the schedule. So map the input to the result
        * we get from the output. */
       Result &result = compile_state.get_result_from_output_socket(*output);

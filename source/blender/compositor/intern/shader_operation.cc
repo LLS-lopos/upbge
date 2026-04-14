@@ -142,6 +142,11 @@ void ShaderOperation::link_node_inputs(const bNode &node)
       continue;
     }
 
+    if (schedule_.unneeded_inputs.contains(input)) {
+      this->link_node_input_unavailable(*input);
+      continue;
+    }
+
     const bNodeSocket *output = get_output_linked_to_input(*input);
     if (!output) {
       const InputDescriptor input_descriptor = input_descriptor_from_input_socket(input);

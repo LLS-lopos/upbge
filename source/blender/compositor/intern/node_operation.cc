@@ -70,8 +70,10 @@ void NodeOperation::compute_results_reference_counts(const Schedule &schedule)
     }
 
     const int reference_count = number_of_inputs_linked_to_output_conditioned(
-        *output,
-        [&](const bNodeSocket &input) { return schedule.nodes.contains(&input.owner_node()); });
+        *output, [&](const bNodeSocket &input) {
+          return schedule.nodes.contains(&input.owner_node()) &&
+                 !schedule.unneeded_inputs.contains(&input);
+        });
 
     this->get_result(output->identifier).set_reference_count(reference_count);
   }

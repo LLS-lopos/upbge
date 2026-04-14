@@ -1538,12 +1538,12 @@ static void do_version_subsurface_methods(bNode *node)
 {
   if (node->type_legacy == SH_NODE_SUBSURFACE_SCATTERING) {
     if (!ELEM(node->custom1, SHD_SUBSURFACE_BURLEY, SHD_SUBSURFACE_RANDOM_WALK_SKIN)) {
-      node->custom1 = SHD_SUBSURFACE_RANDOM_WALK;
+      node->custom1 = SHD_SUBSURFACE_RANDOM_WALK_LEGACY;
     }
   }
   else if (node->type_legacy == SH_NODE_BSDF_PRINCIPLED) {
     if (!ELEM(node->custom2, SHD_SUBSURFACE_BURLEY, SHD_SUBSURFACE_RANDOM_WALK_SKIN)) {
-      node->custom2 = SHD_SUBSURFACE_RANDOM_WALK;
+      node->custom2 = SHD_SUBSURFACE_RANDOM_WALK_LEGACY;
     }
   }
 }

@@ -877,7 +877,7 @@ static const EnumPropertyItem grease_pencil_build_time_mode_items[] = {
 
 #  include "MOD_nodes.hh"
 
-#  include "NOD_geometry_nodes_srna.hh"
+#  include "NOD_nodes_srna.hh"
 
 #  include "ED_object.hh"
 

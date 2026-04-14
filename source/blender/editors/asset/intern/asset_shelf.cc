@@ -395,6 +395,12 @@ void region_message_subscribe(const wmRegionMessageSubscribeParams *params)
                               PreferencesSystem,
                               use_online_access,
                               &msg_sub_value_region_clear_remote_libraries);
+    WM_msg_subscribe_rna_prop(mbus,
+                              nullptr,
+                              &U,
+                              PreferencesExperimental,
+                              use_remote_asset_libraries,
+                              &msg_sub_value_region_clear_remote_libraries);
   }
 }
 

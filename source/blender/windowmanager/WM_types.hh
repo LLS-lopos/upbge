@@ -413,6 +413,9 @@ struct wmNotifier {
 #define NC_VIEWER_PATH (28 << 24)
 #define NC_LOGIC (29 << 24)
 
+/* Changes that affects UI drawing. */
+#define NC_UI (29 << 24)
+
 /* Data type, 256 entries is enough, it can overlap. */
 #define NOTE_DATA 0x00FF0000
 
@@ -582,6 +585,9 @@ struct wmNotifier {
  * That only happens on explicit user action.
  */
 #define ND_ASSET_CATALOGS (4 << 16)
+
+/* Changes in theme preferences that affects UI text drawing. */
+#define ND_UI_FONT (1 << 16)
 
 /* Subtype, 256 entries too. */
 #define NOTE_SUBTYPE 0x0000FF00

@@ -338,6 +338,14 @@ static void rna_userdef_gpu_update(Main * /*bmain*/, Scene * /*scene*/, PointerR
 
   WM_main_add_notifier(NC_WINDOW, nullptr);             /* full redraw */
   WM_main_add_notifier(NC_SCREEN | NA_EDITED, nullptr); /* refresh region sizes */
+  WM_main_add_notifier(NC_UI | ND_UI_FONT, nullptr);
+  USERDEF_TAG_DIRTY;
+}
+
+static void rna_userdef_gpu_and_text_update(Main *bmain, Scene *scene, PointerRNA *ptr)
+{
+  rna_userdef_gpu_update(bmain, scene, ptr);
+  WM_main_add_notifier(NC_UI | ND_UI_FONT, nullptr);
   USERDEF_TAG_DIRTY;
 }
 
@@ -1087,6 +1095,7 @@ static void rna_userdef_text_update(Main * /*bmain*/, Scene * /*scene*/, Pointer
   BLF_cache_clear();
   ui::reinit_font();
   WM_main_add_notifier(NC_WINDOW, nullptr);
+  WM_main_add_notifier(NC_UI | ND_UI_FONT, nullptr);
   USERDEF_TAG_DIRTY;
 }
 
@@ -1641,7 +1650,7 @@ static void rna_def_userdef_theme_ui_font_style(BlenderRNA *brna)
   RNA_def_property_range(prop, 6.0f, 32.0f);
   RNA_def_property_ui_range(prop, 8.0f, 20.0f, 10.0f, 1);
   RNA_def_property_ui_text(prop, "Points", "Font size in points");
-  RNA_def_property_update(prop, 0, "rna_userdef_gpu_update");
+  RNA_def_property_update(prop, 0, "rna_userdef_gpu_and_text_update");
 
   prop = RNA_def_property(srna, "character_weight", PROP_INT, PROP_NONE);
   RNA_def_property_int_default(prop, 400);
@@ -5034,7 +5043,7 @@ static void rna_def_userdef_view(BlenderRNA *brna)
       prop, "UI Scale", "Changes the size of the fonts and widgets in the interface");
   RNA_def_property_range(prop, 0.5f, 6.0f);
   RNA_def_property_ui_range(prop, 0.5f, 3.0f, 1, 2);
-  RNA_def_property_update(prop, 0, "rna_userdef_gpu_update");
+  RNA_def_property_update(prop, 0, "rna_userdef_gpu_and_text_update");
 
   prop = RNA_def_property(srna, "border_width", PROP_INT, PROP_NONE);
   RNA_def_property_ui_text(prop, "Border Width", "Size of the padding around each editor.");

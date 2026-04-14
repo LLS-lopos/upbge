@@ -292,12 +292,12 @@ static wmOperatorStatus strip_modifier_copy_exec(bContext *C, wmOperator *op)
     }
 
     if (src_smd) {
-      StripModifierData *smd_new = seq::modifier_copy(*strip_iter, src_smd);
+      StripModifierData *smd_new = seq::modifier_copy(*strip_iter, src_smd, 0);
       seq::modifier_persistent_uid_init(*strip_iter, *smd_new);
     }
     else {
       for (StripModifierData &smd : active_strip->modifiers) {
-        StripModifierData *smd_new = seq::modifier_copy(*strip_iter, &smd);
+        StripModifierData *smd_new = seq::modifier_copy(*strip_iter, &smd, 0);
         seq::modifier_persistent_uid_init(*strip_iter, *smd_new);
       }
     }
@@ -379,7 +379,7 @@ static wmOperatorStatus strip_modifier_duplicate_exec(bContext *C, wmOperator *o
     return OPERATOR_CANCELLED;
   }
 
-  StripModifierData *smd_new = seq::modifier_copy(*active_strip, smd);
+  StripModifierData *smd_new = seq::modifier_copy(*active_strip, smd, 0);
   seq::modifier_persistent_uid_init(*active_strip, *smd_new);
 
   seq::relations_invalidate_cache(sequencer_scene, active_strip);

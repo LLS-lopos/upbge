@@ -404,39 +404,32 @@ void Instance::object_sync(ObjectRef &ob_ref, Manager & /*manager*/)
     return;
   }
 
-  ObjectHandle &ob_handle = sync.sync_object(ob_ref);
-
   if (partsys_is_visible && ob != draw_ctx->object_edit) {
-    auto sync_hair =
-        [&](ObjectHandle hair_handle, ModifierData &md, ParticleSystem &particle_sys) {
-          ResourceHandleRange _res_handle = manager->resource_handle_for_psys(
-              ob_ref, ob->object_to_world());
-          sync.sync_curves(ob, hair_handle, ob_ref, _res_handle, &md, &particle_sys);
-        };
-    foreach_hair_particle_handle(*this, ob_ref, ob_handle, sync_hair);
+    auto sync_hair = [&](const HairParticleInfo &info) { sync.sync_curves(ob_ref, &info); };
+    foreach_hair_particle(*this, ob_ref, sync_hair);
   }
 
   if (object_is_visible) {
     switch (ob->type) {
       case OB_LAMP:
-        lights.sync_light(ob, ob_handle);
+        lights.sync_light(ob_ref);
         break;
       case OB_MESH:
-        if (!sync.sync_sculpt(ob, ob_handle, ob_ref)) {
-          sync.sync_mesh(ob, ob_handle, ob_ref);
+        if (!sync.sync_sculpt(ob_ref)) {
+          sync.sync_mesh(ob_ref);
         }
         break;
       case OB_POINTCLOUD:
-        sync.sync_pointcloud(ob, ob_handle, ob_ref);
+        sync.sync_pointcloud(ob_ref);
         break;
       case OB_VOLUME:
-        sync.sync_volume(ob, ob_handle, ob_ref);
+        sync.sync_volume(ob_ref);
         break;
       case OB_CURVES:
-        sync.sync_curves(ob, ob_handle, ob_ref);
+        sync.sync_curves(ob_ref);
         break;
       case OB_LIGHTPROBE:
-        light_probes.sync_probe(ob, ob_handle);
+        light_probes.sync_probe(ob_ref);
         break;
       default:
         break;

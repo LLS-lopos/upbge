@@ -1181,7 +1181,7 @@ function(glsl_to_c
 
   # remove ../'s
   get_filename_component(_file_from ${CMAKE_CURRENT_SOURCE_DIR}/${file_from}    REALPATH)
-  get_filename_component(_file_tmp  ${CMAKE_CURRENT_BINARY_DIR}/${file_from}    REALPATH)
+  get_filename_component(_file_tmp  ${CMAKE_CURRENT_BINARY_DIR}/${file_from}.tmp   REALPATH)
   get_filename_component(_file_meta ${CMAKE_CURRENT_BINARY_DIR}/${file_from}.hh REALPATH)
   get_filename_component(_file_info ${CMAKE_CURRENT_BINARY_DIR}/${file_from}.info  REALPATH)
   get_filename_component(_file_to   ${CMAKE_CURRENT_BINARY_DIR}/${file_from}.c  REALPATH)

@@ -586,7 +586,7 @@ struct GreasePencilDepthPlane {
   /* Center and size of the bounding box of the Grease Pencil object. */
   Bounds<float3> bounds;
   /* Grease-pencil object resource handle. */
-  ResourceHandleRange handle;
+  ResourceHandle handle;
 };
 
 struct Resources : public select::SelectMap {

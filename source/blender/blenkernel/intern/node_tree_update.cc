@@ -18,6 +18,7 @@
 #include "DNA_anim_types.h"
 #include "DNA_modifier_types.h"
 #include "DNA_node_types.h"
+#include "DNA_sequence_types.h"
 
 #include "BKE_anim_data.hh"
 #include "BKE_image.hh"
@@ -33,6 +34,7 @@
 
 #include "MOD_nodes.hh"
 
+#include "NOD_compositor_nodes_srna.hh"
 #include "NOD_dependencies.hh"
 #include "NOD_geo_viewer.hh"
 #include "NOD_geometry_nodes_gizmos.hh"
@@ -50,6 +52,10 @@
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"
+
+#include "SEQ_iterator.hh"
+#include "SEQ_modifier.hh"
+#include "SEQ_sequencer.hh"
 
 namespace blender {
 
@@ -210,6 +216,7 @@ static bool is_tree_changed(const bNodeTree &tree)
 using TreeNodePair = std::pair<bNodeTree *, bNode *>;
 using ObjectModifierPair = std::pair<Object *, ModifierData *>;
 using NodeSocketPair = std::pair<bNode *, bNodeSocket *>;
+using StripModifierPair = std::pair<Scene *, StripModifierData *>;
 
 /**
  * Cache common data about node trees from the #Main database that is expensive to retrieve on
@@ -221,6 +228,7 @@ struct NodeTreeRelations {
   std::optional<Vector<bNodeTree *>> all_trees_;
   std::optional<MultiValueMap<bNodeTree *, TreeNodePair>> group_node_users_;
   std::optional<MultiValueMap<bNodeTree *, ObjectModifierPair>> modifiers_users_;
+  std::optional<MultiValueMap<bNodeTree *, StripModifierPair>> strip_modifier_users_;
 
  public:
   NodeTreeRelations(Main *bmain) : bmain_(bmain) {}
@@ -289,10 +297,46 @@ struct NodeTreeRelations {
     }
   }
 
+  void ensure_strip_modifier_users()
+  {
+    if (strip_modifier_users_.has_value()) {
+      return;
+    }
+    strip_modifier_users_.emplace();
+    if (bmain_ == nullptr) {
+      return;
+    }
+
+    for (Scene &scene : bmain_->scenes) {
+      Editing *ed = seq::editing_get(&scene);
+      if (!ed) {
+        continue;
+      }
+      for (Strip *strip : seq::query_all_strips_recursive(&ed->seqbase)) {
+        for (StripModifierData &modifier : strip->modifiers) {
+          if (modifier.type != eSeqModifierType_Compositor) {
+            continue;
+          }
+          const SequencerCompositorModifierData *modifier_data =
+              reinterpret_cast<SequencerCompositorModifierData *>(&modifier);
+          if (modifier_data->node_group != nullptr && !ID_MISSING(modifier_data->node_group)) {
+            strip_modifier_users_->add(modifier_data->node_group, {&scene, &modifier});
+          }
+        }
+      }
+    }
+  }
+
   Span<ObjectModifierPair> get_modifier_users(bNodeTree *ntree)
   {
     BLI_assert(modifiers_users_.has_value());
     return modifiers_users_->lookup(ntree);
+  }
+
+  Span<StripModifierPair> get_strip_modifier_users(bNodeTree *ntree)
+  {
+    BLI_assert(strip_modifier_users_.has_value());
+    return strip_modifier_users_->lookup(ntree);
   }
 
   Span<TreeNodePair> get_group_node_users(bNodeTree *ntree)
@@ -399,6 +443,18 @@ class NodeTreeMainUpdater {
 
             if (md->type == eModifierType_Nodes) {
               MOD_nodes_update_interface(object, reinterpret_cast<NodesModifierData *>(md));
+            }
+          }
+        }
+        if (ntree->type == NTREE_COMPOSIT) {
+          relations_.ensure_strip_modifier_users();
+          for (const StripModifierPair &pair : relations_.get_strip_modifier_users(ntree)) {
+            Scene *scene = pair.first;
+            StripModifierData *md = pair.second;
+
+            if (md->type == eSeqModifierType_Compositor) {
+              seq::compositor_nodes_update_interface(
+                  *scene, *reinterpret_cast<SequencerCompositorModifierData *>(md));
             }
           }
         }
@@ -588,6 +644,10 @@ class NodeTreeMainUpdater {
       if (ntree.type == NTREE_GEOMETRY) {
         ntree.runtime->geometry_nodes_srna_data = nodes::create_geometry_nodes_rna_for_modifier(
             ntree);
+      }
+      else if (ntree.type == NTREE_COMPOSIT) {
+        ntree.runtime->compositor_nodes_srna_data =
+            nodes::create_compositor_nodes_rna_for_strip_modifier(ntree);
       }
     }
 
