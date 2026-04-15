@@ -362,7 +362,7 @@ const char *ShaderModule::static_shader_create_info_name_get(eShaderType shader_
     case DEFERRED_AOV_CLEAR:
       return "eevee_deferred_aov_clear";
     case DEFERRED_CAPTURE_EVAL:
-      return "eevee_deferred_capture_eval";
+      return "eevee_deferred_sphere_eval";
     case DEFERRED_PLANAR_EVAL:
       return "eevee_deferred_planar_eval";
     case DEFERRED_THICKNESS_AMEND:

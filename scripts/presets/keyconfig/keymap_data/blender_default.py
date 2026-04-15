@@ -921,6 +921,7 @@ def km_screen_editing(params):
         ("screen.area_move", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
         ("screen.area_move", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True},
          {"properties": [("snap", True)]}),
+        ("screen.area_move", {"type": 'LEFTMOUSE', "value": 'PRESS', "shift": True}, None),
         ("screen.area_options", {"type": 'RIGHTMOUSE', "value": 'PRESS'}, None),
     ])
 

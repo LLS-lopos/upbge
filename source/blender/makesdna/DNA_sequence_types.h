@@ -674,18 +674,25 @@ enum eEffectTextFlags {
   SEQ_TEXT_OUTLINE = (1 << 4),
 };
 
-/** #TextVars.anchor_x, #TextVars.align */
+/** #TextVars.align */
 enum eEffectTextAlignX {
   SEQ_TEXT_ALIGN_X_LEFT = 0,
   SEQ_TEXT_ALIGN_X_CENTER = 1,
   SEQ_TEXT_ALIGN_X_RIGHT = 2,
 };
 
-/** #TextVars.anchor_y, formerly #TextVars.align_y */
-enum eEffectTextAlignY {
-  SEQ_TEXT_ALIGN_Y_TOP = 0,
-  SEQ_TEXT_ALIGN_Y_CENTER = 1,
-  SEQ_TEXT_ALIGN_Y_BOTTOM = 2,
+/** #TextVars.anchor_x */
+enum eEffectTextAnchorX {
+  SEQ_TEXT_ANCHOR_X_LEFT = 0,
+  SEQ_TEXT_ANCHOR_X_CENTER = 1,
+  SEQ_TEXT_ANCHOR_X_RIGHT = 2,
+};
+
+/** #TextVars.anchor_y */
+enum eEffectTextAnchorY {
+  SEQ_TEXT_ANCHOR_Y_TOP = 0,
+  SEQ_TEXT_ANCHOR_Y_CENTER = 1,
+  SEQ_TEXT_ANCHOR_Y_BOTTOM = 2,
 };
 
 enum eModColorBalanceMethod {
@@ -808,10 +815,10 @@ struct TextVars {
   int selection_end_offset = 0;
 
   /** Replaced by `anchor_y` in 4.4. */
-  DNA_DEPRECATED char align_y_legacy = 0; /* eEffectTextAlignY */
+  DNA_DEPRECATED char align_y_legacy = 0;
 
-  char anchor_x = 0; /* eEffectTextAlignX */
-  char anchor_y = 0; /* eEffectTextAlignY */
+  char anchor_x = 0; /* eEffectTextAnchorX */
+  char anchor_y = 0; /* eEffectTextAnchorY */
   char _pad1 = {};
   seq::TextVarsRuntime *runtime = nullptr;
 
@@ -874,6 +881,10 @@ enum eModMaskTime {
   STRIP_MASK_TIME_RELATIVE = 0,
   /* Global (scene) frame number will be used to access the mask. */
   STRIP_MASK_TIME_ABSOLUTE = 1,
+};
+
+enum SequencerCompositorModifierFlag {
+  HIDE_DATABLOCK_SELECTOR = (1 << 0),
 };
 
 struct StripModifierData {
@@ -948,6 +959,11 @@ struct SequencerTonemapModifierData {
 
 struct SequencerCompositorModifierData {
   StripModifierData modifier;
+
+  /* #SequencerCompositorModifierFlag. */
+  int8_t flag = 0;
+  char _pad[7] = {};
+
   struct bNodeTree *node_group = nullptr;
 };
 

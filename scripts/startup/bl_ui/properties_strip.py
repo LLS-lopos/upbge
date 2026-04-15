@@ -138,6 +138,35 @@ class STRIP_PT_adjust_crop(StripButtonsPanel, Panel):
         col.prop(strip.crop, "min_y")
 
 
+def draw_compositor_effect_node_group_errors(layout, node_tree, strip_input_num):
+    if not node_tree or not node_tree.interface:
+        return
+    float_input_sockets_num = 0
+    color_input_sockets_num = 0
+    output_sockets = []
+    for socket in node_tree.interface.items_tree:
+        if socket.item_type == 'SOCKET':
+            if socket.in_out == 'INPUT' and socket.socket_type == 'NodeSocketColor':
+                color_input_sockets_num += 1
+            elif socket.in_out == 'INPUT' and socket.socket_type == 'NodeSocketFloat':
+                float_input_sockets_num += 1
+            elif socket.in_out == 'OUTPUT':
+                output_sockets.append(socket)
+
+    if color_input_sockets_num < strip_input_num:
+        layout.label(
+            text=f"Node group must have at least {strip_input_num} Color input{
+                's' if strip_input_num > 1 else ''}.",
+            icon='ERROR')
+    if float_input_sockets_num == 0:
+        layout.label(text="Node group does not have an input of type Float. Fade is unused.", icon='ERROR')
+
+    if len(output_sockets) < 1:
+        layout.label(text="Node group must have an output.", icon='ERROR')
+    elif output_sockets[0].socket_type != 'NodeSocketColor':
+        layout.label(text="The first node group output must have the Color type.", icon='ERROR')
+
+
 class STRIP_PT_effect(StripButtonsPanel, Panel):
     bl_label = "Effect Strip"
 
@@ -184,6 +213,7 @@ class STRIP_PT_effect(StripButtonsPanel, Panel):
 
         if strip_type == 'COMPOSITOR':
             layout.template_ID(strip, "node_group", new="node.new_compositor_sequencer_node_group")
+            draw_compositor_effect_node_group_errors(layout, strip.node_group, strip.input_count)
 
         if strip.input_count > 0:
             col = layout.column()

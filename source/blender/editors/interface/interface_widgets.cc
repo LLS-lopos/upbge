@@ -2242,7 +2242,7 @@ static void widget_draw_textbox(const uiFontStyle *fstyle,
     if (scroll <= line_cursor && line_cursor < scroll + visible_lines) {
       const int t = BLF_str_offset_to_cursor(fstyle->uifont_id,
                                              lines[line_cursor].begin(),
-                                             UI_MAX_DRAW_STR,
+                                             lines[line_cursor].size(),
                                              but_pos - (lines[line_cursor].begin() - str),
                                              caret_width);
 

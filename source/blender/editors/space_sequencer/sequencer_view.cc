@@ -348,8 +348,7 @@ void SEQUENCER_OT_view_zoom_ratio(wmOperatorType *ot)
 
 static void seq_view_collection_rect_preview(Scene *scene, Span<Strip *> strips, rctf *rect)
 {
-  const Bounds<float2> box = seq::image_transform_bounding_box_from_collection(
-      scene, strips, true);
+  const Bounds<float2> box = seq::image_transform_bounding_box_from_strips_get(scene, strips);
 
   rect->xmin = box.min[0];
   rect->xmax = box.max[0];

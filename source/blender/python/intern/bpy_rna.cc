@@ -8586,15 +8586,14 @@ static PyObject *pyrna_struct_CreatePyObject_from_type(const PointerRNA *ptr,
   }
 #endif
 
+  BLI_assert(pyrna == nullptr || pyrna->ptr.has_value());
+  Py_DECREF(pyptr_rna);
   if (pyrna == nullptr) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_MemoryError, "couldn't create bpy_struct object");
     }
     return nullptr;
   }
-
-  BLI_assert(pyrna->ptr.has_value());
-  Py_DECREF(pyptr_rna);
 
   /* Blender's instance owns a reference (to avoid Python freeing it). */
   if (instance) {
@@ -8705,13 +8704,12 @@ PyObject *pyrna_prop_CreatePyObject(PointerRNA *ptr, PropertyRNA *prop)
   BPy_PropertyRNA *pyrna = reinterpret_cast<BPy_PropertyRNA *>(
       PyObject_CallOneArg(reinterpret_cast<PyObject *>(type), pypropptr_rna));
 
+  BLI_assert(pyrna == nullptr || pyrna->ptr.has_value());
+  Py_DECREF(pypropptr_rna);
   if (pyrna == nullptr) {
     PyErr_SetString(PyExc_MemoryError, "couldn't create BPy_rna object");
     return nullptr;
   }
-
-  BLI_assert(pyrna->ptr.has_value());
-  Py_DECREF(pypropptr_rna);
 
 #ifdef USE_WEAKREFS
   pyrna->in_weakreflist = nullptr;

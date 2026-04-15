@@ -583,7 +583,14 @@ void GLTexture::mip_range_set(int min, int max)
 FrameBuffer *GLTexture::framebuffer_get()
 {
   if (framebuffer_) {
-    return framebuffer_;
+    GLFrameBuffer *gl_framebuffer = static_cast<GLFrameBuffer *>(framebuffer_);
+    if (gl_framebuffer->context_get() == GLContext::get()) {
+      return framebuffer_;
+    }
+
+    /* Textures can be shared between contexts but this helper framebuffer cannot. */
+    GPU_framebuffer_free(framebuffer_);
+    framebuffer_ = nullptr;
   }
   BLI_assert(!(type_ & GPU_TEXTURE_1D));
   framebuffer_ = GPU_framebuffer_create(name_.c_str());

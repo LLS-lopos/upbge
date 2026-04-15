@@ -204,8 +204,8 @@ static void init_text_effect(Strip *strip)
 
   data->loc[0] = 0.5f;
   data->loc[1] = 0.5f;
-  data->anchor_x = SEQ_TEXT_ALIGN_X_CENTER;
-  data->anchor_y = SEQ_TEXT_ALIGN_Y_CENTER;
+  data->anchor_x = SEQ_TEXT_ANCHOR_X_CENTER;
+  data->anchor_y = SEQ_TEXT_ANCHOR_Y_CENTER;
   data->align = SEQ_TEXT_ALIGN_X_CENTER;
   data->wrap_width = 1.0f;
 }
@@ -967,24 +967,24 @@ static float2 anchor_offset_get(const TextVars *data, int width_max, int text_he
   float2 anchor_offset;
 
   switch (data->anchor_x) {
-    case SEQ_TEXT_ALIGN_X_LEFT:
+    case SEQ_TEXT_ANCHOR_X_LEFT:
       anchor_offset.x = 0;
       break;
-    case SEQ_TEXT_ALIGN_X_CENTER:
+    case SEQ_TEXT_ANCHOR_X_CENTER:
       anchor_offset.x = -width_max / 2.0f;
       break;
-    case SEQ_TEXT_ALIGN_X_RIGHT:
+    case SEQ_TEXT_ANCHOR_X_RIGHT:
       anchor_offset.x = -width_max;
       break;
   }
   switch (data->anchor_y) {
-    case SEQ_TEXT_ALIGN_Y_TOP:
+    case SEQ_TEXT_ANCHOR_Y_TOP:
       anchor_offset.y = 0;
       break;
-    case SEQ_TEXT_ALIGN_Y_CENTER:
+    case SEQ_TEXT_ANCHOR_Y_CENTER:
       anchor_offset.y = text_height / 2.0f;
       break;
-    case SEQ_TEXT_ALIGN_Y_BOTTOM:
+    case SEQ_TEXT_ANCHOR_Y_BOTTOM:
       anchor_offset.y = text_height;
       break;
   }
