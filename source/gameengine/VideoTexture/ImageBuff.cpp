@@ -270,7 +270,7 @@ static PyObject *plot(PyImage *self, PyObject *args)
   short width;
   short height;
   short x, y;
-  short mode = IMB_BLEND_COPY;
+  short mode = -1; //was IMB_BLEND_COPY
 
   if (PyArg_ParseTuple(args, "s*hhhh|h:plot", &buffer, &width, &height, &x, &y, &mode)) {
     // correct decoding, verify that buffer size is correct

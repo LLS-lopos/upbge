@@ -207,7 +207,7 @@ PyMODINIT_FUNC initVideoTexturePythonBinding(void)
   PyModule_AddIntConstant(m, "IMB_BLEND_LUMINOSITY", IMB_BLEND_LUMINOSITY);
   PyModule_AddIntConstant(m, "IMB_BLEND_COLOR", IMB_BLEND_COLOR);
 
-  PyModule_AddIntConstant(m, "IMB_BLEND_COPY", IMB_BLEND_COPY);
+  //PyModule_AddIntConstant(m, "IMB_BLEND_COPY", IMB_BLEND_COPY);
   PyModule_AddIntConstant(m, "IMB_BLEND_COPY_RGB", IMB_BLEND_COPY_RGB);
   PyModule_AddIntConstant(m, "IMB_BLEND_COPY_ALPHA", IMB_BLEND_COPY_ALPHA);
 
