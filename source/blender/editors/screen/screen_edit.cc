@@ -570,7 +570,7 @@ bool screen_area_close(
   float best_alignment = 0.0f;
 
   for (ScrArea &neighbor : screen->areabase) {
-    if (&neighbor == area || &neighbor == not_area) {
+    if (ELEM(&neighbor, area, not_area)) {
       continue;
     }
     const eScreenDir dir = area_getorientation(area, &neighbor);

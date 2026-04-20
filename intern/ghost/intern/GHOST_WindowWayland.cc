@@ -1570,86 +1570,6 @@ GHOST_WindowWayland::GHOST_WindowWayland(GHOST_SystemWayland *system,
 
   wl_surface_add_listener(window_->wl.surface, &wl_surface_listener, window_);
 
-  /* Color management */
-  wp_color_manager_v1 *color_manager = nullptr;
-#ifdef WITH_VULKAN_BACKEND
-  if (type == GHOST_kDrawingContextTypeVulkan) {
-    color_manager = system->wp_color_manager_get();
-  }
-#endif
-  if (color_manager) {
-    wp_image_description_v1 *image_description = nullptr;
-
-    if (system->supports_color_manager_extended_srgb_linear()) {
-      wp_image_description_creator_params_v1 *image_creator_params =
-          wp_color_manager_v1_create_parametric_creator(color_manager);
-      wp_image_description_creator_params_v1_set_tf_named(
-          image_creator_params, WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
-      wp_image_description_creator_params_v1_set_primaries_named(
-          image_creator_params, WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
-
-      image_description = wp_image_description_creator_params_v1_create(image_creator_params);
-      hdr_info_.hdr_enabled = true;
-      hdr_info_.wide_gamut_enabled = true;
-      hdr_info_.sdr_white_level = 1.0f;
-    }
-    else if (system->supports_color_manager_feature_windows_scrgb()) {
-      /* Create an image description compatible with MS-Windows specific definition of scRGB.
-       *
-       * NOTE: This code-path is being used by NVIDIA 595 and higher.
-       *
-       * - Uses sRGB (BT.709) color primaries and white point
-       * - Transfer characteristics is linear
-       * - Value range is extended
-       * - Value of 1.0 corresponds to 80 cd/m^2
-       * - Reference white value is unknown but should be assumed to be 2.5375.
-       *
-       * Note: EGL_EXT_gl_colorspace_scrgb_linear definition differs from Windows-scRGB by using
-       * R=G=B=1.0 as the reference white level, while Windows-scRGB reference white level is
-       * unknown or varies. However, it seems probable that Windows implements both
-       * EGL_EXT_gl_colorspace_scrgb_linear and Vulkan VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT as
-       * Windows-scRGB.
-       *
-       * https://wayland.app/protocols/color-management-v1#wp_color_manager_v1:request:create_windows_scrgb
-       */
-      image_description = wp_color_manager_v1_create_windows_scrgb(color_manager);
-      hdr_info_.hdr_enabled = true;
-      hdr_info_.wide_gamut_enabled = true;
-      hdr_info_.sdr_white_level = 2.5375f;
-    }
-
-    if (image_description) {
-      /* Wait for ready/failed on a dedicated queue to avoid re-entering other listeners.
-       * Using a not-yet-ready description could cause a fatal protocol error. */
-      wl_display *display = system->wl_display_get();
-      wl_event_queue *event_queue = system->wp_color_manager_queue_get();
-      wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(image_description), event_queue);
-
-      GWL_ImageDescriptionWait wait = {false, false};
-      wp_image_description_v1_add_listener(image_description, &image_description_listener, &wait);
-      while (!wait.done) {
-        if (wl_display_dispatch_queue(display, event_queue) == -1) {
-          break;
-        }
-      }
-
-      if (wait.ready) {
-        window_->wp.color_management_surface = wp_color_manager_v1_get_surface(
-            color_manager, window_->wl.surface);
-        wp_color_management_surface_v1_set_image_description(
-            window_->wp.color_management_surface,
-            image_description,
-            WP_COLOR_MANAGER_V1_RENDER_INTENT_PERCEPTUAL);
-      }
-      else {
-        hdr_info_.hdr_enabled = false;
-        hdr_info_.wide_gamut_enabled = false;
-        hdr_info_.sdr_white_level = 1.0f;
-      }
-      wp_image_description_v1_destroy(image_description);
-    }
-  }
-
   wp_fractional_scale_manager_v1 *fractional_scale_manager =
       system->wp_fractional_scale_manager_get();
   if (fractional_scale_manager) {
@@ -1875,6 +1795,88 @@ GHOST_WindowWayland::GHOST_WindowWayland(GHOST_SystemWayland *system,
   }
   else {
     gwl_window_state_set(window_, state);
+  }
+
+  /* Color management */
+  wp_color_manager_v1 *color_manager = nullptr;
+#ifdef WITH_VULKAN_BACKEND
+  if (type == GHOST_kDrawingContextTypeVulkan &&
+      GHOST_ContextVK::supportsWaylandColorManagement() == GHOST_kSuccess)
+  {
+    color_manager = system->wp_color_manager_get();
+  }
+#endif
+  if (color_manager) {
+    wp_image_description_v1 *image_description = nullptr;
+
+    if (system->supports_color_manager_extended_srgb_linear()) {
+      wp_image_description_creator_params_v1 *image_creator_params =
+          wp_color_manager_v1_create_parametric_creator(color_manager);
+      wp_image_description_creator_params_v1_set_tf_named(
+          image_creator_params, WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
+      wp_image_description_creator_params_v1_set_primaries_named(
+          image_creator_params, WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
+
+      image_description = wp_image_description_creator_params_v1_create(image_creator_params);
+      hdr_info_.hdr_enabled = true;
+      hdr_info_.wide_gamut_enabled = true;
+      hdr_info_.sdr_white_level = 1.0f;
+    }
+    else if (system->supports_color_manager_feature_windows_scrgb()) {
+      /* Create an image description compatible with MS-Windows specific definition of scRGB.
+       *
+       * NOTE: This code-path is being used by NVIDIA 595 and higher.
+       *
+       * - Uses sRGB (BT.709) color primaries and white point
+       * - Transfer characteristics is linear
+       * - Value range is extended
+       * - Value of 1.0 corresponds to 80 cd/m^2
+       * - Reference white value is unknown but should be assumed to be 2.5375.
+       *
+       * Note: EGL_EXT_gl_colorspace_scrgb_linear definition differs from Windows-scRGB by using
+       * R=G=B=1.0 as the reference white level, while Windows-scRGB reference white level is
+       * unknown or varies. However, it seems probable that Windows implements both
+       * EGL_EXT_gl_colorspace_scrgb_linear and Vulkan VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT as
+       * Windows-scRGB.
+       *
+       * https://wayland.app/protocols/color-management-v1#wp_color_manager_v1:request:create_windows_scrgb
+       */
+      image_description = wp_color_manager_v1_create_windows_scrgb(color_manager);
+      hdr_info_.hdr_enabled = true;
+      hdr_info_.wide_gamut_enabled = true;
+      hdr_info_.sdr_white_level = 2.5375f;
+    }
+
+    if (image_description) {
+      /* Wait for ready/failed on a dedicated queue to avoid re-entering other listeners.
+       * Using a not-yet-ready description could cause a fatal protocol error. */
+      wl_display *display = system->wl_display_get();
+      wl_event_queue *event_queue = system->wp_color_manager_queue_get();
+      wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(image_description), event_queue);
+
+      GWL_ImageDescriptionWait wait = {false, false};
+      wp_image_description_v1_add_listener(image_description, &image_description_listener, &wait);
+      while (!wait.done) {
+        if (wl_display_dispatch_queue(display, event_queue) == -1) {
+          break;
+        }
+      }
+
+      if (wait.ready) {
+        window_->wp.color_management_surface = wp_color_manager_v1_get_surface(
+            color_manager, window_->wl.surface);
+        wp_color_management_surface_v1_set_image_description(
+            window_->wp.color_management_surface,
+            image_description,
+            WP_COLOR_MANAGER_V1_RENDER_INTENT_PERCEPTUAL);
+      }
+      else {
+        hdr_info_.hdr_enabled = false;
+        hdr_info_.wide_gamut_enabled = false;
+        hdr_info_.sdr_white_level = 1.0f;
+      }
+      wp_image_description_v1_destroy(image_description);
+    }
   }
 
   /* Commit after setting the buffer.

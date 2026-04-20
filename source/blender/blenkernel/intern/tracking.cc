@@ -3271,7 +3271,7 @@ static void tracking_dopesheet_calc_coverage(MovieTracking *tracking)
 {
   MovieTrackingDopesheet *dopesheet = &tracking->dopesheet;
   MovieTrackingObject *tracking_object = BKE_tracking_object_get_active(tracking);
-  int frames, start_frame = INT_MAX, end_frame = -INT_MAX;
+  int frames, start_frame = INT_MAX, end_frame = INT_MIN;
   int *per_frame_counter;
   TrackingCoverage prev_coverage;
   int last_segment_frame;

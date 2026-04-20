@@ -1242,7 +1242,7 @@ wmOperatorStatus PenToolOperation::modal(bContext *C, wmOperator *op, const wmEv
 
   std::atomic<bool> changed = false;
   this->center_of_mass_co = calculate_center_of_mass(*this, false);
-  if (event->type == MOUSEMOVE || event->type == INBETWEEN_MOUSEMOVE) {
+  if (ELEM(event->type, MOUSEMOVE, INBETWEEN_MOUSEMOVE)) {
     if (this->move_seg && this->closest_element.element_mode == ElementMode::Edge) {
       const int curves_index = this->closest_element.drawing_index;
       const float4x4 &layer_to_world = this->layer_to_world_per_curves[curves_index];

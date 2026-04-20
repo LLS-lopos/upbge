@@ -1733,7 +1733,7 @@ def pkg_manifest_validate_field_type(value: str, strict: bool) -> str | None:
     # NOTE: add "keymap" in the future.
     value_expected = PKG_MANIFEST_TYPE_SUPPORTED
     if value not in value_expected:
-        return "Expected to be one of [{:s}], found {!r}".format(", ".join(value_expected), value)
+        return "Expected to be one of [{:s}], found {!r}".format(", ".join(sorted(value_expected)), value)
     return None
 
 

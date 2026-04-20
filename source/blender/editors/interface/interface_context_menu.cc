@@ -867,7 +867,7 @@ bool popup_context_menu_for_button(bContext *C, Button *but, const wmEvent *even
     /* Swap render X and Y dimensions. */
     if (but->rnaprop && but->rnapoin.type == RNA_RenderSettings) {
       const std::string prop_id = RNA_property_identifier(but->rnaprop);
-      if (prop_id == "resolution_x" || prop_id == "resolution_y") {
+      if (ELEM(prop_id, "resolution_x", "resolution_y")) {
         layout.op("RENDER_OT_swap_dimensions",
                   CTX_IFACE_(BLT_I18NCONTEXT_OPERATOR_DEFAULT, "Swap Dimensions"),
                   ICON_RENDER_SWAP_DIMENSIONS);
@@ -1307,19 +1307,16 @@ void popup_context_menu_for_panel(bContext *C, ARegion *region, Panel *panel)
   if (!any_item_visible) {
     return;
   }
-  if (panel->type->parent != nullptr) {
-    return;
-  }
-  if (!panel_can_be_pinned(panel)) {
+  if (panel && panel->type->parent != nullptr) {
     return;
   }
 
   PointerRNA ptr = RNA_pointer_create_discrete(&screen->id, RNA_Panel, panel);
 
-  PopupMenu *pup = popup_menu_begin(C, IFACE_("Panel"), ICON_NONE);
+  PopupMenu *pup = popup_menu_begin(C, IFACE_("Sidebar"), ICON_NONE);
   Layout &layout = *popup_menu_layout(pup);
 
-  if (has_panel_category) {
+  if (has_panel_category && panel && panel_can_be_pinned(panel)) {
     char tmpstr[80];
     SNPRINTF_UTF8(tmpstr, "%s" UI_SEP_CHAR_S "%s", IFACE_("Pin"), IFACE_("Shift Left Mouse"));
     layout.prop(&ptr, "use_pin", UI_ITEM_NONE, tmpstr, ICON_NONE);
@@ -1330,7 +1327,12 @@ void popup_context_menu_for_panel(bContext *C, ARegion *region, Panel *panel)
       Button *but = block->buttons_ptrs.last().get();
       but->flag |= BUT_HAS_SEP_CHAR;
     }
+    layout.separator();
   }
+
+  PointerRNA prefs_ptr = RNA_pointer_create_discrete(nullptr, RNA_PreferencesSystem, &U);
+  layout.prop(&prefs_ptr, "show_panel_tabs_compact", UI_ITEM_NONE, "Compact Tabs", ICON_NONE);
+
   popup_menu_end(C, pup);
 }
 

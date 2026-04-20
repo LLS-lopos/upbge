@@ -520,7 +520,7 @@ void BKE_curvemap_reset(CurveMap *cuma, const rctf *clipr, int preset, CurveMapS
   }
 }
 
-void BKE_curvemap_activate_nearest_point(struct CurveMap *cuma, const int i_last)
+void BKE_curvemap_activate_nearest_point(CurveMap *cuma, const int i_last)
 {
   CurveMapPoint *pts = cuma->curve;
   for (int i = 1;; i++) {

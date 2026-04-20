@@ -156,7 +156,7 @@ class GPUShaderCreator : public OCIO::GpuShaderCreator {
                   const VectorFloatGetter &get_vector_float
 #  if OCIO_VERSION_HEX >= 0x02050000
                   ,
-                  const unsigned /*maxSize*/
+                  const uint /*maxSize*/
 #  endif
                   ) override
   {
@@ -183,7 +183,7 @@ class GPUShaderCreator : public OCIO::GpuShaderCreator {
                   const VectorIntGetter &get_vector_int
 #  if OCIO_VERSION_HEX >= 0x02050000
                   ,
-                  const unsigned /*maxSize*/
+                  const uint /*maxSize*/
 #  endif
                   ) override
   {
@@ -206,7 +206,7 @@ class GPUShaderCreator : public OCIO::GpuShaderCreator {
   }
 
 #  if OCIO_VERSION_HEX >= 0x02050000
-  unsigned
+  uint
 #  else
   void
 #  endif
@@ -260,7 +260,7 @@ class GPUShaderCreator : public OCIO::GpuShaderCreator {
   }
 
 #  if OCIO_VERSION_HEX >= 0x02050000
-  unsigned
+  uint
 #  else
   void
 #  endif

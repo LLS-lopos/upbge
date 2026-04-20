@@ -4075,8 +4075,8 @@ static void wm_event_handle_xrevent(wmWindowManager *wm,
 
   /* Check if the XR context scene matches the main Blender context scene to counter-act possible
    * re-allocation on undo operator execution. */
-  const unsigned int xr_ctx_scene_uid = CTX_data_scene(xr_context)->id.session_uid;
-  const unsigned int main_ctx_scene_uid = CTX_data_scene(main_context)->id.session_uid;
+  const uint xr_ctx_scene_uid = CTX_data_scene(xr_context)->id.session_uid;
+  const uint main_ctx_scene_uid = CTX_data_scene(main_context)->id.session_uid;
   const bool ctx_xr_main_scene_match = (xr_ctx_scene_uid == main_ctx_scene_uid);
 
   /* Only process XR operator handlers to prevent interferences with main window handlers.

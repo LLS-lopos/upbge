@@ -194,6 +194,7 @@ SourceProcessor::Result SourceProcessor::convert_bsl(metadata::Source external_s
   lower_aggregate_initializers(parser);
   lower_array_initializations(parser);
   lower_scope_resolution_operators(parser);
+  lower_structured_bindings(parser);
   /* Lower references. */
   lower_reference_arguments(parser);
   lower_reference_variables(parser);

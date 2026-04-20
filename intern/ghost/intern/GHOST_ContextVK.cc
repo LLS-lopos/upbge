@@ -7,6 +7,7 @@
  */
 
 #include "GHOST_ContextVK.hh"
+#include "GHOST_Types.hh"
 #include <vulkan/vulkan_core.h>
 
 #ifdef _WIN32
@@ -1837,3 +1838,32 @@ GHOST_TSuccess GHOST_ContextVK::releaseNativeHandles()
 {
   return GHOST_kSuccess;
 }
+
+#ifdef WITH_GHOST_WAYLAND
+GHOST_TSuccess GHOST_ContextVK::supportsWaylandColorManagement()
+{
+  if (!vulkan_instance.has_value()) {
+    return GHOST_kFailure;
+  }
+  if (!vulkan_instance->device.has_value()) {
+    return GHOST_kFailure;
+  }
+
+  GHOST_DeviceVK &device_vk = vulkan_instance->device.value();
+  if (device_vk.properties_12.driverID != VK_DRIVER_ID_NVIDIA_PROPRIETARY) {
+    return GHOST_kSuccess;
+  }
+
+  uint32_t driver_version = device_vk.properties.properties.driverVersion;
+  uint32_t major_version = (driver_version >> 22) & 0x3ff;
+  /* NVIDIA has a well known implementation of wayland color management protocol since driver
+   * version 595. Using the color management protocol leads to very bright output when using on
+   * older driver. The output isn't influenced by surface configuration.
+   */
+  if (major_version < 595) {
+    return GHOST_kFailure;
+  }
+
+  return GHOST_kSuccess;
+}
+#endif

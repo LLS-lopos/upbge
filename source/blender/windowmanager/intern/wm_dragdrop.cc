@@ -37,6 +37,7 @@
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
+#include "BKE_node_tree_interface.hh"
 #include "BKE_preview_image.hh"
 #include "BKE_screen.hh"
 
@@ -458,6 +459,12 @@ void WM_drag_data_free(eWM_DragDataType dragtype, void *poin)
     case WM_DRAG_STRING: {
       std::string *str = static_cast<std::string *>(poin);
       MEM_delete(str);
+      break;
+    }
+    case WM_DRAG_NODE_TREE_INTERFACE: {
+      bke::node_interface::bNodeTreeInterfaceItemReference *item_reference =
+          static_cast<bke::node_interface::bNodeTreeInterfaceItemReference *>(poin);
+      bke::node_interface::item_reference_free(item_reference);
       break;
     }
     default:

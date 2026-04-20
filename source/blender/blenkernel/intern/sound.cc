@@ -1661,7 +1661,7 @@ AUD_Handle bke::sound_device_play(AUD_Device device, AUD_Sound sound)
   return nullptr;
 }
 
-bool bke::sound_device_read(AUD_Device device, unsigned char *buffer, int length)
+bool bke::sound_device_read(AUD_Device device, uchar *buffer, int length)
 {
   BLI_assert(buffer);
   auto read_device = std::dynamic_pointer_cast<aud::ReadDevice>(device);
@@ -1782,14 +1782,14 @@ float *bke::sound_read_file_buffer(const char *filename,
 }
 
 bool bke::sound_mixdown(AUD_Sequence sequence,
-                        unsigned int start,
-                        unsigned int length,
-                        unsigned int buffersize,
+                        uint start,
+                        uint length,
+                        uint buffersize,
                         const char *filename,
                         const aud::DeviceSpecs &specs,
                         aud::Container format,
                         aud::Codec codec,
-                        unsigned int bitrate,
+                        uint bitrate,
                         bool split_channels,
                         std::string &r_error,
                         bool (*progress_callback)(float, void *),

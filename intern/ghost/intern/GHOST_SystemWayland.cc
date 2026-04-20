@@ -7098,32 +7098,34 @@ struct ColorManagerV1Data {
 };
 
 static void color_manager_v1_supported_intent(void *data,
-                                              struct wp_color_manager_v1 * /*wp_color_manager_v1*/,
+                                              wp_color_manager_v1 * /*wp_color_manager_v1*/,
                                               uint32_t render_intent)
 {
   ColorManagerV1Data *cm_data = static_cast<ColorManagerV1Data *>(data);
   cm_data->supported_intents.insert(render_intent);
 }
 
-static void color_manager_v1_supported_feature(
-    void *data, struct wp_color_manager_v1 * /*wp_color_manager_v1*/, uint32_t feature)
+static void color_manager_v1_supported_feature(void *data,
+                                               wp_color_manager_v1 * /*wp_color_manager_v1*/,
+                                               uint32_t feature)
 {
   ColorManagerV1Data *cm_data = static_cast<ColorManagerV1Data *>(data);
   cm_data->supported_features.insert(feature);
 }
-static void color_manager_v1_supported_tf_named(
-    void *data, struct wp_color_manager_v1 * /*wp_color_manager_v1*/, uint32_t tf)
+static void color_manager_v1_supported_tf_named(void *data,
+                                                wp_color_manager_v1 * /*wp_color_manager_v1*/,
+                                                uint32_t tf)
 {
   ColorManagerV1Data *cm_data = static_cast<ColorManagerV1Data *>(data);
   cm_data->supported_transfers.insert(tf);
 }
 static void color_manager_v1_supported_primaries_named(
-    void *data, struct wp_color_manager_v1 * /*wp_color_manager_v1*/, uint32_t primaries)
+    void *data, wp_color_manager_v1 * /*wp_color_manager_v1*/, uint32_t primaries)
 {
   ColorManagerV1Data *cm_data = static_cast<ColorManagerV1Data *>(data);
   cm_data->supported_primaries.insert(primaries);
 }
-static void color_manager_v1_done(void *data, struct wp_color_manager_v1 * /*wp_color_manager_v1*/)
+static void color_manager_v1_done(void *data, wp_color_manager_v1 * /*wp_color_manager_v1*/)
 {
   ColorManagerV1Data *cm_data = static_cast<ColorManagerV1Data *>(data);
 
