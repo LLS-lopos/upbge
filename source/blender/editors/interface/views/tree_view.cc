@@ -919,19 +919,20 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
       tree_view.scroll_value_ = std::make_unique<int>(0);
     }
 
+    Button *but = nullptr;
     if (visible_row_count && (tot_items > *visible_row_count)) {
       row.column(false);
-      Button *but = uiDefButI(block,
-                              ButtonType::Scroll,
-                              "",
-                              0,
-                              0,
-                              V2D_SCROLL_WIDTH,
-                              *tree_view.custom_height_,
-                              tree_view.scroll_value_.get(),
-                              0,
-                              tot_items - *visible_row_count,
-                              "");
+      but = uiDefButI(block,
+                      ButtonType::Scroll,
+                      "",
+                      0,
+                      0,
+                      V2D_SCROLL_WIDTH,
+                      *tree_view.custom_height_,
+                      tree_view.scroll_value_.get(),
+                      0,
+                      tot_items - *visible_row_count,
+                      "");
       auto *but_scroll = reinterpret_cast<ButtonScrollBar *>(but);
       but_scroll->visual_height = *visible_row_count;
     }
@@ -941,18 +942,18 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
     /* Bottom */
     Layout &bottom = col.row(false);
     block_emboss_set(block, EmbossType::None);
-    Button *but = uiDefIconButBitC(block,
-                                   ButtonType::IconToggleN,
-                                   1,
-                                   ICON_DISCLOSURE_TRI_DOWN,
-                                   0,
-                                   0,
-                                   UI_UNIT_X,
-                                   UI_UNIT_Y * 0.5,
-                                   tree_view.show_display_options_.get(),
-                                   0,
-                                   0,
-                                   TIP_(""));
+    but = uiDefIconButBitC(block,
+                           ButtonType::IconToggleN,
+                           1,
+                           ICON_DISCLOSURE_TRI_DOWN,
+                           0,
+                           0,
+                           UI_UNIT_X,
+                           UI_UNIT_Y * 0.5,
+                           tree_view.show_display_options_.get(),
+                           0,
+                           0,
+                           TIP_(""));
     button_flag_disable(but, BUT_UNDO);
     block_emboss_set(block, EmbossType::Emboss);
     bottom.column(false);
@@ -972,22 +973,22 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
     if (*tree_view.show_display_options_) {
       Layout &filter_layout = col.row(true);
       block_emboss_set(block, EmbossType::Emboss);
-      Button *but = uiDefBut(block,
-                             ButtonType::Text,
-                             "",
-                             0,
-                             0,
-                             UI_UNIT_X * 10,
-                             UI_UNIT_Y,
-                             tree_view.search_string_.get(),
-                             0,
-                             UI_MAX_NAME_STR,
-                             "");
+      but = uiDefBut(block,
+                     ButtonType::Text,
+                     "",
+                     0,
+                     0,
+                     UI_UNIT_X * 10,
+                     UI_UNIT_Y,
+                     tree_view.search_string_.get(),
+                     0,
+                     UI_MAX_NAME_STR,
+                     "");
       button_flag_enable(but, BUT_TEXTEDIT_UPDATE | BUT_VALUE_CLEAR);
       button_flag_disable(but, BUT_UNDO);
       def_but_icon(but, ICON_VIEWZOOM, UI_HAS_ICON);
       button_placeholder_set(but, IFACE_("Search"));
-
+      filter_layout.separator();
       but = uiDefIconButBitC(block,
                              ButtonType::Toggle,
                              1,
@@ -1014,7 +1015,6 @@ void TreeViewLayoutBuilder::build_from_tree(AbstractTreeView &tree_view)
           break;
       }
 
-      filter_layout.separator();
       but = uiDefIconBut(block,
                          ButtonType::IconToggle,
                          icon,

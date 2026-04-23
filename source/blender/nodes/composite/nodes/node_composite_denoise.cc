@@ -188,7 +188,7 @@ class DenoiseOperation : public NodeOperation {
     }
     else {
       input_color = const_cast<float *>(static_cast<const float *>(input_image.cpu_data().data()));
-      output_color = static_cast<float *>(output_image.cpu_data().data());
+      output_color = static_cast<float *>(output_image.cpu_data_for_write().data());
     }
 
     const int64_t buffer_size = int64_t(width) * height * input_image.channels_count();
@@ -225,7 +225,7 @@ class DenoiseOperation : public NodeOperation {
           temporary_buffers_to_free.append(albedo);
         }
         else {
-          albedo = static_cast<float *>(input_albedo.cpu_data().data());
+          albedo = static_cast<float *>(input_albedo.cpu_data_for_write().data());
         }
       }
 
@@ -257,7 +257,7 @@ class DenoiseOperation : public NodeOperation {
           temporary_buffers_to_free.append(normal);
         }
         else {
-          normal = static_cast<float *>(input_normal.cpu_data().data());
+          normal = static_cast<float *>(input_normal.cpu_data_for_write().data());
         }
       }
 

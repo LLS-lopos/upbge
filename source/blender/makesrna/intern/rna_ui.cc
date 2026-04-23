@@ -1998,7 +1998,7 @@ static void rna_def_panel(BlenderRNA *brna)
 
   prop = RNA_def_property(srna, "use_pin", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "flag", PNL_PIN);
-  RNA_def_property_ui_text(prop, "Pin", "Show the panel on all tabs");
+  RNA_def_property_ui_text(prop, "Pin Panel", "Show the panel on all tabs");
   /* XXX, should only tag region for redraw */
   RNA_def_property_update(prop, NC_WINDOW, nullptr);
 

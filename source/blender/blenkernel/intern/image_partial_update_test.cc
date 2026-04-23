@@ -16,8 +16,8 @@
 #include "BKE_image_partial_update.hh"
 #include "BKE_main.hh"
 
+#include "IMB_cache.hh"
 #include "IMB_imbuf.hh"
-#include "IMB_moviecache.hh"
 
 #include "DNA_image_types.h"
 
@@ -80,7 +80,7 @@ class ImagePartialUpdateTest : public testing::Test {
     G_MAIN = prev_bmain;
     BKE_main_free(bmain);
 
-    IMB_moviecache_destruct();
+    IMB_cache_destruct();
     IMB_exit();
     GHOST_ISystemPaths::dispose();
     BKE_appdir_exit();

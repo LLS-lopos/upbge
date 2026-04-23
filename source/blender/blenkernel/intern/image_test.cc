@@ -19,8 +19,8 @@
 #include "testing/testing.h"
 #include "gmock/gmock.h"
 
+#include "IMB_cache.hh"
 #include "IMB_imbuf.hh"
-#include "IMB_moviecache.hh"
 
 #include "DNA_image_types.h"
 
@@ -246,7 +246,7 @@ class ImageTest : public ::testing::Test {
   {
     BKE_appdir_init();
     IMB_init();
-    IMB_moviecache_init();
+    IMB_cache_init();
 
     bmain_ = BKE_main_new();
     G_MAIN = bmain_;
@@ -257,7 +257,7 @@ class ImageTest : public ::testing::Test {
     BKE_main_free(bmain_);
     G_MAIN = nullptr;
 
-    IMB_moviecache_destruct();
+    IMB_cache_destruct();
     IMB_exit();
     BKE_appdir_exit();
   }

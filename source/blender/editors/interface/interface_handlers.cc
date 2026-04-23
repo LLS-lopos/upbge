@@ -4398,11 +4398,6 @@ static int do_but_textedit(
           searchbox_event(C, data->searchbox, but, data->region, event);
           break;
         }
-        if (textbox && event->type == WHEELDOWNMOUSE) {
-          textbox_add_scroll(textbox, 1);
-          retval = WM_UI_HANDLER_BREAK;
-          break;
-        }
         if (textbox && event->type == EVT_DOWNARROWKEY) {
           textbox_jump_line(textbox, STRCUR_DIR_NEXT, event->modifier & KM_SHIFT);
           retval = WM_UI_HANDLER_BREAK;
@@ -4428,11 +4423,6 @@ static int do_but_textedit(
           mouse_motion_keynav_init(&data->searchbox_keynav_state, event);
 #endif
           searchbox_event(C, data->searchbox, but, data->region, event);
-          break;
-        }
-        if (textbox && event->type == WHEELUPMOUSE) {
-          textbox_add_scroll(textbox, -1);
-          retval = WM_UI_HANDLER_BREAK;
           break;
         }
         if (textbox && event->type == EVT_UPARROWKEY) {
@@ -5525,6 +5515,15 @@ static int do_but_TEXTBOX(bContext *C,
   switch (data->state) {
     case BUTTON_STATE_TEXT_EDITING:
     case BUTTON_STATE_HIGHLIGHT: {
+      if (ELEM(event->type, WHEELUPMOUSE, WHEELDOWNMOUSE)) {
+        if (textbox->last_total_lines > textbox->visible_lines()) {
+          textbox_add_scroll(textbox, (event->type == WHEELUPMOUSE ? -1 : 1));
+          ED_region_tag_redraw(data->region);
+          return WM_UI_HANDLER_BREAK;
+        }
+        return data->state == BUTTON_STATE_HIGHLIGHT ? WM_UI_HANDLER_CONTINUE :
+                                                       WM_UI_HANDLER_BREAK;
+      }
       if (!(event->val == KM_PRESS && event->type == LEFTMOUSE)) {
         break;
       }
