@@ -985,7 +985,7 @@ void BM_verts_calc_normal_from_cloud_ex(
         angles[i] = angle_signed_on_axis_v3v3_v3(dir_a, dir_test, r_normal);
       }
       std::ranges::sort(order, [&](int a, int b) {
-        /* This order ensures the norma doesn't "flip" when refining. */
+        /* This order ensures the normal doesn't "flip" when refining. */
         return angles[a] > angles[b];
       });
       float normal_refine[3] = {0.0f, 0.0f, 0.0f};

@@ -140,6 +140,7 @@ set(SRC
   intern/grease_pencil_convert_legacy.cc
   intern/grease_pencil_fills.cc
   intern/grease_pencil_vertex_groups.cc
+  intern/gtest_setup.cc
   intern/icons.cc
   intern/icons_rasterize.cc
   intern/id_hash.cc
@@ -421,6 +422,7 @@ set(SRC
   BKE_grease_pencil_fills.hh
   BKE_grease_pencil_legacy_convert.hh
   BKE_grease_pencil_vertex_groups.hh
+  BKE_gtest_setup.hh
   BKE_icons.hh
   BKE_id_hash.hh
   BKE_idprop.hh

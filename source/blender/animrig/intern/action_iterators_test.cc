@@ -4,6 +4,7 @@
 #include "ANIM_action.hh"
 #include "ANIM_action_iterators.hh"
 
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
@@ -13,10 +14,8 @@
 #include "DNA_object_types.h"
 
 #include "RNA_access.hh"
-#include "RNA_define.hh"
 #include "RNA_prototypes.hh"
 
-#include "CLG_log.h"
 #include "testing/testing.h"
 
 namespace blender::animrig::tests {
@@ -27,19 +26,12 @@ class ActionIteratorsTest : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    /* BKE_id_free() hits a code path that uses CLOG, which crashes if not initialized properly. */
-    CLG_init();
-
-    /* To make id_can_have_animdata() and friends work, the `id_types` array needs to be set up. */
-    BKE_idtype_init();
-
-    RNA_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    CLG_exit();
-    RNA_exit();
+    bke::gtest_teardown();
   }
 
   void SetUp() override

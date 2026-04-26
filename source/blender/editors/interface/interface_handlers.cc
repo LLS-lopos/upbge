@@ -5561,7 +5561,7 @@ static int do_but_TEXTBOX(bContext *C,
       if (!(event->val == KM_PRESS && event->type == LEFTMOUSE)) {
         break;
       }
-      /* Try activate the text-box scrollbar. */
+      /* Try activate the text-box scroll-bar. */
       if (textbox->last_total_lines > textbox->visible_lines() &&
           BLI_rctf_isect_pt(&scroll_rect, UNPACK2(event->xy)))
       {
@@ -12491,16 +12491,14 @@ static int pie_handler(bContext *C, const wmEvent *event, PopupBlockHandle *menu
 
         /* handle animation */
         if (!(block->pie_data->flags & PIE_ANIMATION_FINISHED)) {
-          const double final_time = (U.uiflag & USER_REDUCE_MOTION) ?
-                                        0.0f :
-                                        0.01 * U.pie_animation_timeout;
-          float fac = duration / final_time;
-          const float pie_radius = U.pie_menu_radius * UI_SCALE_FAC;
-
-          if (fac > 1.0f) {
+          const bool animate = !(U.uiflag & USER_REDUCE_MOTION) && U.pie_animation_timeout;
+          float fac = animate ? duration / (0.01f * double(U.pie_animation_timeout)) : 1.0f;
+          if (fac >= 1.0f) {
             fac = 1.0f;
             block->pie_data->flags |= PIE_ANIMATION_FINISHED;
           }
+
+          const float pie_radius = U.pie_menu_radius * UI_SCALE_FAC;
 
           for (Button &but : block->buttons()) {
             if (but.pie_dir != UI_RADIAL_NONE) {

@@ -10,6 +10,7 @@
 
 #include "BKE_appdir.hh"
 #include "BKE_global.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_image.hh"
 #include "BKE_main.hh"
@@ -25,8 +26,6 @@
 #include "DNA_image_types.h"
 
 #include "RE_pipeline.h"
-
-#include "CLG_log.h"
 
 namespace blender::bke::tests {
 
@@ -233,21 +232,16 @@ class ImageTest : public ::testing::Test {
  protected:
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_idtype_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    CLG_exit();
+    bke::gtest_teardown();
   }
 
   void SetUp() override
   {
-    BKE_appdir_init();
-    IMB_init();
-    IMB_cache_init();
-
     bmain_ = BKE_main_new();
     G_MAIN = bmain_;
   }
@@ -256,10 +250,6 @@ class ImageTest : public ::testing::Test {
   {
     BKE_main_free(bmain_);
     G_MAIN = nullptr;
-
-    IMB_cache_destruct();
-    IMB_exit();
-    BKE_appdir_exit();
   }
 
   Image *load_image(const char *path)

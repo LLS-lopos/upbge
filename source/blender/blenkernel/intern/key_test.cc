@@ -2,6 +2,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_key.hh"
 #include "BKE_main.hh"
@@ -24,7 +25,12 @@ class ShapekeyTest : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    BKE_idtype_init();
+    bke::gtest_setup();
+  }
+
+  static void TearDownTestSuite()
+  {
+    bke::gtest_teardown();
   }
 
   void SetUp() override

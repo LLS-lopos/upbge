@@ -317,10 +317,7 @@ TEST(blf_wrapping_path, wrap_path_hardlimit)
   BLF_size(id, 10.0f);
   const float width = BLF_width(id, sample, sizeof(sample));
   Vector<StringRef> wrapped = BLF_string_wrap(
-      id,
-      sample,
-      int(float(width) * 0.7f),
-      BLFWrapMode(int(BLFWrapMode::Path) | int(BLFWrapMode::HardLimit)));
+      id, sample, int(float(width) * 0.7f), BLFWrapMode::Path | BLFWrapMode::HardLimit);
   EXPECT_TRUE(wrapped.size() == 2);
   close_font(id);
 }
@@ -430,10 +427,7 @@ TEST(blf_wrapping_typographical, wrap_typographical_hardlimit)
   BLF_size(id, 10.0f);
   const float width = BLF_width(id, sample, sizeof(sample));
   Vector<StringRef> wrapped = BLF_string_wrap(
-      id,
-      sample,
-      int(float(width) * 0.7f),
-      BLFWrapMode(int(BLFWrapMode::Typographical) | int(BLFWrapMode::HardLimit)));
+      id, sample, int(float(width) * 0.7f), BLFWrapMode::Typographical | BLFWrapMode::HardLimit);
   EXPECT_TRUE(wrapped.size() == 2);
   close_font(id);
 }

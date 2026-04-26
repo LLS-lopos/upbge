@@ -185,7 +185,7 @@ static TokenStream tokenize_dna_header(StringRef source)
   while (cur < end) {
     const char c = *cur;
 
-    /* Whitespace. */
+    /* White-space. */
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
       cur++;
       continue;
@@ -323,7 +323,7 @@ static bool is_valid_type_name(const StringRefNull type_name, const StringRefNul
 /** Validate a member name. */
 static bool is_valid_member_name(const StringRefNull name, const StringRefNull filepath)
 {
-  /* Strip pointer/array decorators: e.g. `*var[3]` → `var`. */
+  /* Strip pointer/array decorators: e.g. `*var[3]` -> `var`. */
   const uint strip_start = DNA_member_id_offset_start(name.c_str());
   const uint strip_len = DNA_member_id_offset_end(name.c_str() + strip_start);
   const StringRef name_strip(name.substr(strip_start, strip_len));
@@ -699,7 +699,7 @@ bool parse_dna_header(const StringRefNull filepath,
 /** \name Type Substitution
  * \{ */
 
-/** `ListBaseT<...>` → `ListBase`. */
+/** `ListBaseT<...>` -> `ListBase`. */
 static void substitute_listbase_t(ParsedMember &member)
 {
   if (member.type_name.starts_with("ListBaseT<") && member.type_name.ends_with(">")) {

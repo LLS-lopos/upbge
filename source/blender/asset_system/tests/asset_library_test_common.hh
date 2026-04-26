@@ -13,13 +13,10 @@
 #include "asset_library_service.hh"
 
 #include "BKE_appdir.hh"
-#include "BKE_callbacks.hh"
-#include "BKE_idtype.hh"
+#include "BKE_gtest_setup.hh"
 
 #include "BLI_fileops.h"
 #include "BLI_path_utils.hh"
-
-#include "CLG_log.h"
 
 #include "testing/testing.h"
 
@@ -44,18 +41,12 @@ class AssetLibraryTestBase : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    testing::Test::SetUpTestSuite();
-    CLG_init();
-    BKE_idtype_init();
-    /* Current File library needs this. */
-    BKE_callback_global_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    BKE_callback_global_finalize();
-    CLG_exit();
-    testing::Test::TearDownTestSuite();
+    bke::gtest_teardown();
   }
 
   void SetUp() override

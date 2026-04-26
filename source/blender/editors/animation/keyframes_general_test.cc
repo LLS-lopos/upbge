@@ -12,6 +12,7 @@
 
 #include "BKE_armature.hh"
 #include "BKE_fcurve.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
@@ -19,8 +20,6 @@
 
 #include "DNA_anim_types.h"
 #include "DNA_object_types.h"
-
-#include "RNA_define.hh"
 
 #include "ED_keyframes_edit.hh"
 
@@ -95,14 +94,14 @@ FCurvePtr fake_fcurve_in_buffer(const char *rna_path,
 struct keyframes_paste : public testing::Test {
   static void SetUpTestSuite()
   {
+    bke::gtest_setup();
     ANIM_fcurves_copybuf_reset();
-    RNA_init();
   }
 
   static void TearDownTestSuite()
   {
     ANIM_fcurves_copybuf_free();
-    RNA_exit();
+    bke::gtest_teardown();
   }
 };
 

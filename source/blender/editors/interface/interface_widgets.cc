@@ -1729,10 +1729,7 @@ Vector<StringRef> text_clip_multiline_middle(const uiFontStyle *fstyle,
   BLI_assert(max_lines > 0);
 
   const Vector<StringRef> lines = BLF_string_wrap(
-      fstyle->uifont_id,
-      str,
-      max_line_width,
-      BLFWrapMode(int(BLFWrapMode::Typographical) | int(BLFWrapMode::HardLimit)));
+      fstyle->uifont_id, str, max_line_width, BLFWrapMode::Typographical | BLFWrapMode::HardLimit);
 
   if (lines.size() <= max_lines) {
     return lines;

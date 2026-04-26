@@ -3,13 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later */
 #include "mesh_brush_common.hh"
 
-#include "BKE_idtype.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_lib_id.hh"
 
 #include "BLI_array_utils.hh"
 #include "BLI_map.hh"
-
-#include "CLG_log.h"
 
 #include "DNA_mesh_types.h"
 
@@ -27,13 +25,12 @@ class MeshTests : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_idtype_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    CLG_exit();
+    bke::gtest_teardown();
   }
 
   void TearDown() override

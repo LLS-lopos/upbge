@@ -4,6 +4,7 @@
 #include "testing/testing.h"
 
 #include "BKE_brush.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
@@ -22,7 +23,12 @@ class BrushTest : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    BKE_idtype_init();
+    bke::gtest_setup();
+  }
+
+  static void TearDownTestSuite()
+  {
+    bke::gtest_teardown();
   }
 
   void SetUp() override

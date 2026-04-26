@@ -6,14 +6,13 @@
 
 #include "testing/testing.h"
 
-#include "CLG_log.h"
-
 #include "BLI_array.hh"
 #include "BLI_listbase.h"
 #include "BLI_path_utils.hh"
 #include "BLI_string.h"
 
 #include "BKE_collection.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_library.hh"
@@ -30,12 +29,11 @@ class BMainTest : public testing::Test {
  public:
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_idtype_init();
+    bke::gtest_setup();
   }
   static void TearDownTestSuite()
   {
-    CLG_exit();
+    bke::gtest_teardown();
   }
 };
 

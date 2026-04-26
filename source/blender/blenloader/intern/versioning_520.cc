@@ -261,7 +261,7 @@ static void version_clear_strip_linear_modifier_flag(Main &bmain)
     Editing *ed = seq::editing_get(&scene);
     if (ed != nullptr) {
       seq::foreach_strip(&ed->seqbase, [&](Strip *strip) {
-        constexpr int flag_linear_modifiers = 1 << 23;
+        constexpr eStripFlag flag_linear_modifiers = eStripFlag(1 << 23);
         strip->flag &= ~flag_linear_modifiers;
         return true;
       });

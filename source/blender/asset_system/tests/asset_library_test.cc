@@ -5,11 +5,9 @@
 #include "AS_asset_catalog.hh"
 #include "AS_asset_library.hh"
 
-#include "BKE_callbacks.hh"
+#include "BKE_gtest_setup.hh"
 
 #include "asset_library_service.hh"
-
-#include "CLG_log.h"
 
 #include "testing/testing.h"
 
@@ -19,13 +17,11 @@ class AssetLibraryTest : public testing::Test {
  public:
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_callback_global_init();
+    bke::gtest_setup();
   }
   static void TearDownTestSuite()
   {
-    CLG_exit();
-    BKE_callback_global_finalize();
+    bke::gtest_teardown();
   }
 
   void TearDown() override

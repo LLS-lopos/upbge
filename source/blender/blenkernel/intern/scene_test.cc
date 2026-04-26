@@ -3,24 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include "BKE_anim_data.hh"
-#include "BKE_appdir.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idprop.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
 #include "BKE_scene.hh"
 
-#include "BLO_userdef_default.h"
-
 #include "DNA_defs.h"
-#include "IMB_imbuf.hh"
 
 #include "DNA_action_types.h"
 #include "DNA_anim_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_userdef_types.h"
-
-#include "CLG_log.h"
 
 #include "testing/testing.h"
 
@@ -63,19 +58,14 @@ class SceneTest : public ::testing::Test {
 
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_appdir_init();
-    IMB_init();
-    BKE_idtype_init();
+    bke::gtest_setup();
     /* #BKE_scene_duplicate() uses #U::dupflag. */
     U = dna::shallow_copy(UserDef());
   }
 
   static void TearDownTestSuite()
   {
-    IMB_exit();
-    BKE_appdir_exit();
-    CLG_exit();
+    bke::gtest_teardown();
   }
 
   void SetUp() override

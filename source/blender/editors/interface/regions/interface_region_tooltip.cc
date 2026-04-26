@@ -220,12 +220,10 @@ static void tooltip_region_draw_cb(const bContext * /*C*/, ARegion *region)
   /* Wrap most text typographically with hard width limit. */
   BLF_wordwrap(data->fstyle.uifont_id,
                data->wrap_width,
-               BLFWrapMode(int(BLFWrapMode::Typographical) | int(BLFWrapMode::HardLimit)));
+               BLFWrapMode::Typographical | BLFWrapMode::HardLimit);
 
   /* Wrap paths with path-specific wrapping with hard width limit. */
-  BLF_wordwrap(blf_mono_font,
-               data->wrap_width,
-               BLFWrapMode(int(BLFWrapMode::Path) | int(BLFWrapMode::HardLimit)));
+  BLF_wordwrap(blf_mono_font, data->wrap_width, BLFWrapMode::Path | BLFWrapMode::HardLimit);
 
   bbox.xmin += 0.5f * pad_x; /* add padding to the text */
   bbox.ymax -= 0.5f * pad_y;
@@ -1468,10 +1466,8 @@ static ARegion *tooltip_create_with_data(bContext *C,
   BLF_enable(blf_mono_font, font_flag);
   BLF_wordwrap(data->fstyle.uifont_id,
                data->wrap_width,
-               BLFWrapMode(int(BLFWrapMode::Typographical) | int(BLFWrapMode::HardLimit)));
-  BLF_wordwrap(blf_mono_font,
-               data->wrap_width,
-               BLFWrapMode(int(BLFWrapMode::Path) | int(BLFWrapMode::HardLimit)));
+               BLFWrapMode::Typographical | BLFWrapMode::HardLimit);
+  BLF_wordwrap(blf_mono_font, data->wrap_width, BLFWrapMode::Path | BLFWrapMode::HardLimit);
 
   int i, fonth, fontw;
   for (i = 0, fontw = 0, fonth = 0; i < data->fields.size(); i++) {

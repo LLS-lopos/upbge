@@ -10,6 +10,7 @@
 
 #include "BKE_appdir.hh"
 #include "BKE_callbacks.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_main.hh"
 
 #include "DNA_asset_types.h"
@@ -29,13 +30,11 @@ class AssetLibraryServiceTest : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_callback_global_init();
+    bke::gtest_setup();
   }
   static void TearDownTestSuite()
   {
-    CLG_exit();
-    BKE_callback_global_finalize();
+    bke::gtest_teardown();
   }
 
   void SetUp() override

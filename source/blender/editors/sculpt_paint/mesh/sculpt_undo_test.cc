@@ -2,7 +2,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later */
 
-#include "BKE_idtype.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_lib_id.hh"
 
 #include "DNA_mesh_types.h"
@@ -10,8 +10,6 @@
 #include "GEO_mesh_primitive_cuboid.hh"
 
 #include "sculpt_undo.hh"
-
-#include "CLG_log.h"
 
 #include "testing/testing.h"
 
@@ -23,13 +21,12 @@ class SculptUndoTest : public testing::Test {
 
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_idtype_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    CLG_exit();
+    bke::gtest_teardown();
   }
 
   void SetUp() override

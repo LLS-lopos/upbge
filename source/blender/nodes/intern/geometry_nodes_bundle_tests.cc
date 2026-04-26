@@ -3,20 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later */
 #include "testing/testing.h"
 
-#include "CLG_log.h"
-
-#include "BKE_appdir.hh"
-#include "BKE_context.hh"
-#include "BKE_global.hh"
-#include "BKE_idtype.hh"
-#include "BKE_main.hh"
-#include "BKE_material.hh"
-#include "BKE_node.hh"
-#include "BKE_scene.hh"
-
-#include "IMB_imbuf.hh"
-
-#include "RNA_define.hh"
+#include "BKE_gtest_setup.hh"
 
 #include "NOD_geometry_nodes_bundle.hh"
 
@@ -27,23 +14,12 @@ class BundleTest : public ::testing::Test {
  protected:
   static void SetUpTestSuite()
   {
-    CLG_init();
-    BKE_idtype_init();
-    RNA_init();
-    bke::node_system_init();
-    BKE_appdir_init();
-    IMB_init();
-    BKE_materials_init();
+    bke::gtest_setup();
   }
 
   static void TearDownTestSuite()
   {
-    BKE_materials_exit();
-    bke::node_system_exit();
-    RNA_exit();
-    BKE_appdir_exit();
-    IMB_exit();
-    CLG_exit();
+    bke::gtest_teardown();
   }
 };
 

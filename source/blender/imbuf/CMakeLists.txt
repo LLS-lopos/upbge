@@ -17,6 +17,7 @@ set(INC_SYS
 
 set(SRC
   intern/allocimbuf.cc
+  intern/cache.cc
   intern/colormanagement.cc
   intern/colormanagement_inline.h
   intern/conversion.cc
@@ -37,7 +38,6 @@ set(SRC
   intern/interp.cc
   intern/metadata.cc
   intern/module.cc
-  intern/cache.cc
   intern/readimage.cc
   intern/rectop.cc
   intern/rotate.cc
@@ -51,13 +51,13 @@ set(SRC
   intern/util_gpu.cc
   intern/writeimage.cc
 
+  IMB_cache.hh
   IMB_colormanagement.hh
   IMB_imbuf.hh
   IMB_imbuf_enums.h
   IMB_imbuf_types.hh
   IMB_interp.hh
   IMB_metadata.hh
-  IMB_cache.hh
   IMB_openexr.hh
   IMB_thumbs.hh
   intern/IMB_allocimbuf.hh

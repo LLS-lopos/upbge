@@ -271,7 +271,7 @@ static int add_type(const StringRefNull type_name_input, const int size)
 
 /**
  * Add a member to the members table. The name is expected to already be in canonical
- * form (function pointers rewritten as `(*name)()`, `(*name)(void)`, and name validaty
+ * form (function pointers rewritten as `(*name)()`, `(*name)(void)`, and name validate
  * already checked by the parser).
  */
 static int add_member(const StringRefNull member_name)
@@ -423,7 +423,7 @@ static int calculate_struct_sizes(int firststruct, FILE *file_verify, const char
 
           /* Write size verification to file. */
           {
-            /* Normally 'alloca' would be used here, however we can't in a loop.
+            /* Normally `alloca` would be used here, however we can't in a loop.
              * Use an over-sized buffer instead. */
             char name_static[1024];
             BLI_assert(sizeof(name_static) > namelen);
@@ -579,7 +579,7 @@ static int calculate_struct_sizes(int firststruct, FILE *file_verify, const char
 
           /* Sanity check 2: alignment should always be equal or smaller than the maximum
            * alignment we support. 8 bytes for built-in types (e.g. `int64_t`, `double`),
-           * up to 16 bytes for C++ overaligned types like `float4x4`. */
+           * up to 16 bytes for C++ over-aligned types like `float4x4`. */
           BLI_assert(max_align_32 <= 16);
           BLI_assert(max_align_64 <= 16);
 

@@ -1653,7 +1653,7 @@ void panel_category_tabs_draw_all(ARegion *region, const char *category_id_activ
               category_id_draw, category_draw_len, 2);
           char *space = BLI_strcasestr(category_id_draw, " ");
           if (char_offset2 == 2 && isupper(category_id_draw[1])) {
-            /* First two characters are latin with second uppercase. */
+            /* First two characters are Latin with second uppercase. */
             title = std::string(category_id_draw, char_offset2);
           }
           else if (space && category_draw_len > (space - category_id_draw)) {

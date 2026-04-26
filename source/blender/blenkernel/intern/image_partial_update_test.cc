@@ -11,6 +11,7 @@
 
 #include "BKE_appdir.hh"
 #include "BKE_global.hh"
+#include "BKE_gtest_setup.hh"
 #include "BKE_idtype.hh"
 #include "BKE_image.hh"
 #include "BKE_image_partial_update.hh"
@@ -35,6 +36,16 @@ class ImagePartialUpdateTest : public testing::Test {
   ImBuf *image_buffer;
   PartialUpdateUser *partial_update_user;
 
+  static void SetUpTestSuite()
+  {
+    bke::gtest_setup();
+  }
+
+  static void TearDownTestSuite()
+  {
+    bke::gtest_teardown();
+  }
+
  private:
   Image *create_test_image(int width, int height)
   {
@@ -54,11 +65,6 @@ class ImagePartialUpdateTest : public testing::Test {
  protected:
   void SetUp() override
   {
-    CLG_init();
-    BKE_idtype_init();
-    BKE_appdir_init();
-    IMB_init();
-
     bmain = BKE_main_new();
     /* Required by usage of #ID_BLEND_PATH_FROM_GLOBAL in #add_ibuf_for_tile. */
     prev_bmain = G_MAIN;
@@ -79,12 +85,6 @@ class ImagePartialUpdateTest : public testing::Test {
     /* Restore original main in G_MAIN. */
     G_MAIN = prev_bmain;
     BKE_main_free(bmain);
-
-    IMB_cache_destruct();
-    IMB_exit();
-    GHOST_ISystemPaths::dispose();
-    BKE_appdir_exit();
-    CLG_exit();
   }
 };
 
